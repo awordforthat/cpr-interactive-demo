@@ -1,49 +1,44 @@
-/*
-  Blink
-  Turns on an LED on for one second, then off for one second, repeatedly.
+#include <Adafruit_NeoPixel.h>
+#ifdef __AVR__
+#include <avr/power.h>
+#endif
 
-  Most Arduinos have an on-board LED you can control. On the UNO, MEGA and ZERO 
-  it is attached to digital pin 13, on MKR1000 on pin 6. LED_BUILTIN is set to
-  the correct LED pin independent of which board is used.
-  If you want to know what pin the on-board LED is connected to on your Arduino model, check
-  the Technical Specs of your board  at https://www.arduino.cc/en/Main/Products
-  
-  This example code is in the public domain.
+#define POT_PIN 1 // I'm pretty sure this is an analog IO pin - if you're having trouble reading from it, maybe change this
+#define LED_PIN 11 // this is definitely digital IO - this is fine
+#define NUM_LEDS 10;  // change this to however many LEDs are in that strip you have
 
-  modified 8 May 2014
-  by Scott Fitzgerald
-  
-  modified 2 Sep 2016
-  by Arturo Guadalupi
-  
-  modified 8 Sep 2016
-  by Colby Newman
-*/
-
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 // the setup function runs once when you press reset or power the board
 void setup() {
   // initialize digital pin LED_BUILTIN as an output.
+  pinMode(LED_PIN, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
+
+  strip.begin(); 
+  strip.setBrightness(255);
+  strip.show(); // initialize all pixels to "off"
+
 }
 
 // the loop function runs over and over again forever
 void loop() {
-  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(250);                       // wait for a quarter second
-  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-  delay(250);                       // wait for a quarter second
+  // read the value of the potentiometer
+  potVal = analogRead(potPin);
+  Serial.println("The potentiometer reading was: " + potVal);
 
-  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(250);                       // wait for a quarter second
-  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-  delay(250);                       // wait for a quarter second
+  //strip.setBrightness(???);  // brightness ranges from 0 to 255. replace ??? with math to scale pot value into this range
 
-  digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-  delay(250);                       // wait for a quarter second
-  digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-  delay(250);                       // wait for a quarter second
-
-  delay(1000);                      // wait for one second
+  // note: setBrightness is not really meant to be used like this, but it'll do for a starter example
   
 }
+
+void setStripColor(r, g, b)
+{
+  for(int i = 0; i < NUM_LEDS; i++)
+  {
+    strip.setPixelColor(i, r, g, b);
+  }
+  strip.show();
+}
+
