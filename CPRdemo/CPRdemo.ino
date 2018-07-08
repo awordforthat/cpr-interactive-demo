@@ -1,44 +1,140 @@
-#include <Adafruit_NeoPixel.h>
 #ifdef __AVR__
 #include <avr/power.h>
 #endif
 
-#define POT_PIN 1 // I'm pretty sure this is an analog IO pin - if you're having trouble reading from it, maybe change this
+#include <Adafruit_GFX.h>
+#include "Adafruit_LEDBackpack.h"
+#include <Wire.h>
+
+#include "State.cpp";
+
+
+#define POT_PIN A0 // I'm pretty sure this is an analog IO pin - if you're having trouble reading from it, maybe change this
 #define LED_PIN 11 // this is definitely digital IO - this is fine
-#define NUM_LEDS 10;  // change this to however many LEDs are in that strip you have
+#define BUTTON_PIN 7 // temporary to test state changes
 
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_7segment redDisplay = Adafruit_7segment();
+Adafruit_7segment greenDisplay = Adafruit_7segment();
 
+
+enum StateIDs {
+  SETUP,
+  PLAY,
+  FEEDBACK,
+  CALIBRATION
+};
+
+
+int currentInstantaneousButtonState = 0;
+int prevInstantaneousButtonState = 0;
+int prevRealButtonState = 0;
+unsigned long lastDebounceTime = 0;
+unsigned long debounceDelay = 50;
+
+SetupState setupState = SetupState(SETUP, "hello");
+PlayState playState = PlayState(PLAY);
+FeedbackState feedbackState = FeedbackState(FEEDBACK);
+CalibrationState calibrationState = CalibrationState(CALIBRATION);
+
+
+State* currentState = &setupState;
+ 
 // the setup function runs once when you press reset or power the board
 void setup() {
+  
   // initialize digital pin LED_BUILTIN as an output.
   pinMode(LED_PIN, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(7, INPUT);
 
-  strip.begin(); 
-  strip.setBrightness(255);
-  strip.show(); // initialize all pixels to "off"
+  redDisplay.begin(0x70);
+  greenDisplay.begin(0x71);
+  
+  Serial.begin(9600);
+
+
+  setupState.Init();
+
 
 }
 
 // the loop function runs over and over again forever
 void loop() {
-  // read the value of the potentiometer
-  potVal = analogRead(potPin);
-  Serial.println("The potentiometer reading was: " + potVal);
-
-  //strip.setBrightness(???);  // brightness ranges from 0 to 255. replace ??? with math to scale pot value into this range
-
-  // note: setBrightness is not really meant to be used like this, but it'll do for a starter example
+//currentState->Update();
   
+  int instReading = digitalRead(BUTTON_PIN);
+
+  if(CheckDebounce(instReading))
+  {
+    GoToNextState(currentState->GetId(), false);
+  }
+
+
+  //
 }
 
-void setStripColor(r, g, b)
+void GoToState(int stateID)
 {
-  for(int i = 0; i < NUM_LEDS; i++)
+  currentState->DeInit();
+  bool error = false;
+  switch(stateID)
   {
-    strip.setPixelColor(i, r, g, b);
+    case SETUP:
+      currentState = &setupState;
+      break;
+    case PLAY:
+      currentState = &playState;
+      break;
+    case FEEDBACK:
+      currentState = &feedbackState;
+      break;
+    case CALIBRATION:
+      currentState = &calibrationState;
+      break;
+    default:
+      error = true;
+      
+    if(!error)
+    {
+      currentState->Init();
+    }
+    else {
+      Serial.println((String)stateID + " was unrecognized!");
+    }
   }
-  strip.show();
+}
+
+void GoToNextState(int stateID, bool includeCalibration)
+{
+  Serial.println("Old state id: " + stateID);
+  int newStateId = (stateID + 1) % (includeCalibration ? 4 : 3);
+  Serial.println("New state id: " + (String)stateID);
+  GoToState(newStateId);
+}
+
+boolean CheckDebounce(int instReading, int triggerVal = HIGH)
+{
+  boolean returnable = false; // whether or not the input shows a real HIGH value
+  
+  if(instReading != prevInstantaneousButtonState)
+  {
+    lastDebounceTime = millis();
+  } 
+
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    // in here should be the real reading
+     if(instReading == triggerVal && prevRealButtonState == !triggerVal)
+     {
+       // inside this loop, the trigger value has been solid for 50ms, && the previous real value was the opposite of the trigger
+       returnable = true;
+     }
+     // record the real value for comparing to later
+      prevRealButtonState = instReading;
+  }
+
+  // record the instantaneous reading for the next debounce comparison
+  prevInstantaneousButtonState = instReading;
+
+  return returnable;
 }
 
