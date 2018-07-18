@@ -6,9 +6,6 @@
 #include "Adafruit_LEDBackpack.h"
 #include <Wire.h>
 
-#include "State.cpp";
-
-
 #define POT_PIN A0 // I'm pretty sure this is an analog IO pin - if you're having trouble reading from it, maybe change this
 #define LED_PIN 11 // this is definitely digital IO - this is fine
 #define BUTTON_PIN 7 // temporary to test state changes
@@ -17,7 +14,7 @@ Adafruit_7segment redDisplay = Adafruit_7segment();
 Adafruit_7segment greenDisplay = Adafruit_7segment();
 
 
-enum StateIDs {
+enum StateID {
   SETUP,
   PLAY,
   FEEDBACK,
@@ -30,14 +27,7 @@ int prevInstantaneousButtonState = 0;
 int prevRealButtonState = 0;
 unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;
-
-SetupState setupState = SetupState(SETUP, "hello");
-PlayState playState = PlayState(PLAY);
-FeedbackState feedbackState = FeedbackState(FEEDBACK);
-CalibrationState calibrationState = CalibrationState(CALIBRATION);
-
-
-State* currentState = &setupState;
+StateID currentState = SETUP;
  
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -51,65 +41,6 @@ void setup() {
   greenDisplay.begin(0x71);
   
   Serial.begin(9600);
-
-
-  setupState.Init();
-
-
-}
-
-// the loop function runs over and over again forever
-void loop() {
-//currentState->Update();
-  
-  int instReading = digitalRead(BUTTON_PIN);
-
-  if(CheckDebounce(instReading))
-  {
-    GoToNextState(currentState->GetId(), false);
-  }
-
-
-  //
-}
-
-void GoToState(int stateID)
-{
-  currentState->DeInit();
-  bool error = false;
-  switch(stateID)
-  {
-    case SETUP:
-      currentState = &setupState;
-      break;
-    case PLAY:
-      currentState = &playState;
-      break;
-    case FEEDBACK:
-      currentState = &feedbackState;
-      break;
-    case CALIBRATION:
-      currentState = &calibrationState;
-      break;
-    default:
-      error = true;
-      
-    if(!error)
-    {
-      currentState->Init();
-    }
-    else {
-      Serial.println((String)stateID + " was unrecognized!");
-    }
-  }
-}
-
-void GoToNextState(int stateID, bool includeCalibration)
-{
-  Serial.println("Old state id: " + stateID);
-  int newStateId = (stateID + 1) % (includeCalibration ? 4 : 3);
-  Serial.println("New state id: " + (String)stateID);
-  GoToState(newStateId);
 }
 
 boolean CheckDebounce(int instReading, int triggerVal = HIGH)
@@ -137,4 +68,70 @@ boolean CheckDebounce(int instReading, int triggerVal = HIGH)
 
   return returnable;
 }
+
+void GoToNextState(bool includeCalibration = false)
+{
+  Serial.println("Old state id: " + currentState);
+  int newStateId = (currentState + 1) % (includeCalibration ? 4 : 3);
+  Serial.println("New state id: " + (String)newStateId);
+  currentState = newStateId;
+}
+
+void UpdateSetup() {
+  redDisplay.writeDigitNum(1, SETUP);
+  redDisplay.writeDisplay();
+}
+
+void UpdatePlay() {
+  redDisplay.writeDigitNum(1, PLAY);
+  redDisplay.writeDisplay();
+}
+
+void UpdateFeedback() {
+  redDisplay.writeDigitNum(1, 2);
+  redDisplay.writeDisplay();
+}
+
+void UpdateCalibration() {
+  redDisplay.writeDigitNum(1, CALIBRATION);
+  redDisplay.writeDisplay();
+}
+
+// the loop function runs over and over again forever
+void loop() {
+  
+  int instReading = digitalRead(BUTTON_PIN);
+
+  if(CheckDebounce(instReading))
+  {
+    GoToNextState(true);
+  }
+
+  bool error = false;
+  switch(currentState) {
+    case SETUP:
+      UpdateSetup();
+      break;
+    case PLAY:
+      UpdatePlay();
+      break;
+    case FEEDBACK:
+      UpdateFeedback();
+    case CALIBRATION:
+      UpdateCalibration();
+      break;
+    default:
+      error = true;
+
+    if(error) {
+      Serial.println("State " + (String)currentState + " was unrecognized");
+    }
+  }
+
+ 
+
+}
+
+
+
 

@@ -1,8 +1,10 @@
 #include <Arduino.h>
+#include "Adafruit_LEDBackpack.h"
+#include <Adafruit_GFX.h>
 
 class State {
   public:
-    State::State(int id) {
+    State(int id) {
       Serial.println("Initializing state with id " + (String)id);
       _id = id;
     }
@@ -26,8 +28,9 @@ class State {
 class SetupState : public State {
   
   public:
-    SetupState(int id, String message) : State(id) {
-      Serial.println( message);
+    SetupState(int id, Adafruit_7segment* displayBoard) : State(id) {
+     
+      _displayBoard = displayBoard;
       }
     void Init() {
       Serial.println("Initializing setup state");
@@ -40,7 +43,12 @@ class SetupState : public State {
     void Update()
     {
       Serial.println("Updating setup state");
+      _displayBoard->print(3000, DEC);
+      _displayBoard->writeDisplay();
     }
+
+    private:
+      Adafruit_7segment* _displayBoard;
 };
 
 class PlayState : public State {
