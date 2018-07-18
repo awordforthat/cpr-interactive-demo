@@ -78,22 +78,22 @@ void GoToNextState(bool includeCalibration = false)
 }
 
 void UpdateSetup() {
-  redDisplay.writeDigitNum(1, SETUP);
+  redDisplay.writeDigitNum(0, SETUP);
   redDisplay.writeDisplay();
 }
 
 void UpdatePlay() {
-  redDisplay.writeDigitNum(1, PLAY);
+  redDisplay.writeDigitNum(0, PLAY);
   redDisplay.writeDisplay();
 }
 
 void UpdateFeedback() {
-  redDisplay.writeDigitNum(1, 2);
+  redDisplay.writeDigitNum(0, FEEDBACK);
   redDisplay.writeDisplay();
 }
 
 void UpdateCalibration() {
-  redDisplay.writeDigitNum(1, CALIBRATION);
+  redDisplay.writeDigitNum(0, CALIBRATION);
   redDisplay.writeDisplay();
 }
 
