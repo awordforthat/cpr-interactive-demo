@@ -9,6 +9,7 @@
 #define POT_PIN A0 // I'm pretty sure this is an analog IO pin - if you're having trouble reading from it, maybe change this
 #define LED_PIN 11 // this is definitely digital IO - this is fine
 #define BUTTON_PIN 7 // temporary to test state changes
+#define NUM_SAMPLES 10
 
 Adafruit_7segment redDisplay = Adafruit_7segment();
 Adafruit_7segment greenDisplay = Adafruit_7segment();
@@ -21,13 +22,19 @@ enum StateID {
   CALIBRATION
 };
 
-
+// variables common to all states
 int currentInstantaneousButtonState = 0;
 int prevInstantaneousButtonState = 0;
 int prevRealButtonState = 0;
 unsigned long lastDebounceTime = 0;
 unsigned long debounceDelay = 50;
 StateID currentState = SETUP;
+
+// variables for setup state
+int previousTimePotValues[NUM_SAMPLES];
+int currentTimePotIndex = 0;
+const int MAX_NUM_SECONDS = 90;
+const int MIN_NUM_SECONDS = 30;
  
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -41,6 +48,10 @@ void setup() {
   greenDisplay.begin(0x71);
   
   Serial.begin(9600);
+
+  for (int i = 0; i < NUM_SAMPLES; i++) {
+   previousTimePotValues[i] =map(analogRead(POT_PIN), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
+}
 }
 
 boolean CheckDebounce(int instReading, int triggerVal = HIGH)
@@ -78,8 +89,17 @@ void GoToNextState(bool includeCalibration = false)
 }
 
 void UpdateSetup() {
-  redDisplay.writeDigitNum(0, SETUP);
+  int averageTimePotValue = 0;
+  for(int i = 0; i < NUM_SAMPLES; i++) {
+    averageTimePotValue += previousTimePotValues[i];
+  }
+  averageTimePotValue = (int)averageTimePotValue/NUM_SAMPLES;
+  previousTimePotValues[currentTimePotIndex % NUM_SAMPLES] = map(analogRead(POT_PIN), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
+  currentTimePotIndex = currentTimePotIndex + 1;
+  
+  redDisplay.print((int)averageTimePotValue);
   redDisplay.writeDisplay();
+  
 }
 
 void UpdatePlay() {
