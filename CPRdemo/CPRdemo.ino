@@ -6,15 +6,15 @@
 #include "Adafruit_LEDBackpack.h"
 #include <Wire.h>
 
-#define POT_PIN A0 // I'm pretty sure this is an analog IO pin - if you're having trouble reading from it, maybe change this
-#define LED_PIN 11 // this is definitely digital IO - this is fine
-#define BUTTON_PIN 7 // temporary to test state changes
+#define POT_PIN_TIME A0 // Input from TIME pot
+#define POT_PIN_BEATSPERMINUTE A1 // Input from BEATSPERMINUTE pot
+#define LED_PIN 11 // Unused right now
+#define BUTTON_STARTSTOP_PIN 2 // buttonStartStop
+#define BUTTON_ADULTCHILD_PIN 4 // AdultChild
 #define NUM_SAMPLES 10
 
 Adafruit_7segment redDisplay = Adafruit_7segment();
 Adafruit_7segment greenDisplay = Adafruit_7segment();
-
-// temporary change
 
 
 enum StateID {
@@ -44,19 +44,19 @@ void setup() {
   // initialize digital pin LED_BUILTIN as an output.
   pinMode(LED_PIN, OUTPUT);
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(7, INPUT);
+  pinMode(2, INPUT_PULLUP);
 
-  redDisplay.begin(0x70);
-  greenDisplay.begin(0x71);
+  greenDisplay.begin(0x70);
+  redDisplay.begin(0x71);
   
   Serial.begin(9600);
 
   for (int i = 0; i < NUM_SAMPLES; i++) {
-   previousTimePotValues[i] =map(analogRead(POT_PIN), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
+   previousTimePotValues[i] =map(analogRead(POT_PIN_TIME), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
 }
 }
 
-boolean CheckDebounce(int instReading, int triggerVal = HIGH)
+boolean CheckDebounce(int instReading, int triggerVal = LOW)
 {
   boolean returnable = false; // whether or not the input shows a real HIGH value
   
@@ -84,9 +84,10 @@ boolean CheckDebounce(int instReading, int triggerVal = HIGH)
 
 void GoToNextState(bool includeCalibration = false)
 {
-  Serial.println("Old state id: " + currentState);
-  int newStateId = (currentState + 1) % (includeCalibration ? 4 : 3);
+  Serial.println("Old state id: " + (String)currentState);
+  int newStateId = (currentState + 1) % (includeCalibration ? 4 : 3); //What's this?: "? 4 : 3"
   Serial.println("New state id: " + (String)newStateId);
+  Serial.println();
   currentState = newStateId;
 }
 
@@ -96,7 +97,7 @@ void UpdateSetup() {
     averageTimePotValue += previousTimePotValues[i];
   }
   averageTimePotValue = (int)averageTimePotValue/NUM_SAMPLES;
-  previousTimePotValues[currentTimePotIndex % NUM_SAMPLES] = map(analogRead(POT_PIN), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
+  previousTimePotValues[currentTimePotIndex % NUM_SAMPLES] = map(analogRead(POT_PIN_TIME), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
   currentTimePotIndex = currentTimePotIndex + 1;
   
   redDisplay.print((int)averageTimePotValue);
@@ -122,7 +123,7 @@ void UpdateCalibration() {
 // the loop function runs over and over again forever
 void loop() {
   
-  int instReading = digitalRead(BUTTON_PIN);
+  int instReading = digitalRead(BUTTON_STARTSTOP_PIN);
 
   if(CheckDebounce(instReading))
   {
