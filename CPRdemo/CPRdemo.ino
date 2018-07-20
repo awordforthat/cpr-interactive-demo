@@ -13,7 +13,8 @@
 #define LED_PIN 11 // Unused right now
 #define BUTTON_STARTSTOP 2 // Set pin 2 for StartStop button
 #define BUTTON_ADULTCHILD 4 // Set pin 4 for AdultChild button
-#define NUM_SAMPLES 10
+#define BUTTON_STEPSTATE 5 // Set pin 5 for StepState button
+#define NUM_SAMPLES 20
 #define LED_STARTSTOP 8 // Set pin 8 for Start/Stop button LED
 #define LED_ADULTCHILD 12 //Set pin 12 for Adult/Child button LED
 
@@ -39,7 +40,7 @@ StateID currentState = SETUP;
 // variables for setup state
 int previousTimePotValues[NUM_SAMPLES];
 int currentTimePotIndex = 0;
-const int MAX_NUM_SECONDS = 120;
+const int MAX_NUM_SECONDS = 90;
 const int MIN_NUM_SECONDS = 30;
  
 // the setup function runs once when you press reset or power the board
@@ -50,19 +51,20 @@ void setup() {
 	pinMode(LED_BUILTIN, OUTPUT); //Unused now
 	pinMode(LED_STARTSTOP, OUTPUT);
 	pinMode(LED_ADULTCHILD, OUTPUT);
-	pinMode(2, INPUT_PULLUP);
-	pinMode(4, INPUT_PULLUP);
+	pinMode(BUTTON_STARTSTOP, INPUT_PULLUP);
+  pinMode(BUTTON_STEPSTATE, INPUT_PULLUP); 
+	pinMode(BUTTON_ADULTCHILD, INPUT_PULLUP);
   
   greenDisplay.begin(0x70);
   redDisplay.begin(0x71);
 
 	//Clear the displays
   greenDisplay.clear();
-  redDisplay.clear();
   greenDisplay.writeDisplay();
+  redDisplay.clear();
   redDisplay.writeDisplay();
   
-  delay(2000);
+  delay(1000);
   Serial.begin(9600);
 
   for (int i = 0; i < NUM_SAMPLES; i++) {
@@ -106,9 +108,12 @@ void GoToNextState(bool includeCalibration = false)
   Serial.println();
   currentState = newStateId;
 }
+//**********Add reset for pot value for overflows***********
+
 
 void UpdateSetup() {
-  int averageTimePotValue = 0;
+// Read and post the time pot value to the display.  Change to minutes:seconds format?
+int averageTimePotValue = 0;
   for(int i = 0; i < NUM_SAMPLES; i++) {
     averageTimePotValue += previousTimePotValues[i];
   }
@@ -122,6 +127,7 @@ void UpdateSetup() {
   int instReading = digitalRead(BUTTON_STARTSTOP);
   if(CheckDebounce(instReading)) //if switch is stable (debounced)
   {
+    Serial.println("You pushed the STARTSTOP switch.");
     GoToNextState(true); //go to PLAY state
   }
 
@@ -164,9 +170,13 @@ void UpdateCalibration() {
 
 // the loop function runs over and over again forever
 void loop() {
-  
-  int instReading = digitalRead(BUTTON_STARTSTOP);
-
+//Light the StartStop LED when button is pressed
+  int BUTTONSTARTSTOPVAL = 0; 
+  int instReading = digitalRead(BUTTON_STARTSTOP);  //If I change this to the STEPSTATE button, nothing advances.
+      BUTTONSTARTSTOPVAL = digitalRead(BUTTON_STARTSTOP);
+      BUTTONSTARTSTOPVAL = !BUTTONSTARTSTOPVAL; //Invert button state to make turn LED on when button is depressed
+      digitalWrite(LED_STARTSTOP, BUTTONSTARTSTOPVAL); 
+ 
   if(CheckDebounce(instReading)) //if switch is stable (debounced)
   {
     GoToNextState(true);
@@ -182,6 +192,7 @@ void loop() {
       break;
     case FEEDBACK:
       UpdateFeedback();
+      break;
     case CALIBRATION:
       UpdateCalibration();
       break;
