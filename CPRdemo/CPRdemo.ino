@@ -14,7 +14,7 @@
 #define BUTTON_STARTSTOP 2 // Set pin 2 for StartStop button
 #define BUTTON_ADULTCHILD 4 // Set pin 4 for AdultChild button
 #define BUTTON_STEPSTATE 5 // Set pin 5 for StepState button
-#define NUM_SAMPLES 20
+#define NUM_SAMPLES 10
 #define LED_STARTSTOP 8 // Set pin 8 for Start/Stop button LED
 #define LED_ADULTCHILD 12 //Set pin 12 for Adult/Child button LED
 
@@ -52,7 +52,7 @@ void setup() {
 	pinMode(LED_STARTSTOP, OUTPUT);
 	pinMode(LED_ADULTCHILD, OUTPUT);
 	pinMode(BUTTON_STARTSTOP, INPUT_PULLUP);
-  pinMode(BUTTON_STEPSTATE, INPUT_PULLUP); 
+  pinMode(BUTTON_STEPSTATE, INPUT_PULLUP); //Unused now
 	pinMode(BUTTON_ADULTCHILD, INPUT_PULLUP);
   
   greenDisplay.begin(0x70);
@@ -64,16 +64,16 @@ void setup() {
   redDisplay.clear();
   redDisplay.writeDisplay();
   
-  delay(1000);
   Serial.begin(9600);
-
+  
+//Read the TIME pot and post it to the display once.
   for (int i = 0; i < NUM_SAMPLES; i++) {
    previousTimePotValues[i] =map(analogRead(POT_PIN_TIME), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
 }
 } //End setup 
 
 
-
+//This is the debounce function.  Runs when called.
 boolean CheckDebounce(int instReading, int triggerVal = LOW)
 {
   boolean returnable = false; // whether or not the input shows a real HIGH value
@@ -99,19 +99,51 @@ boolean CheckDebounce(int instReading, int triggerVal = LOW)
 
   return returnable;
 }
+//End debounce function
 
+//This is the GoToNextState function.
 void GoToNextState(bool includeCalibration = false)
 {
   Serial.println("Old state id: " + (String)currentState);
-  int newStateId = (currentState + 1) % (includeCalibration ? 4 : 3); 
+  int newStateId = (currentState + 1) % (includeCalibration ? 4 : 3);
+ 
   Serial.println("New state id: " + (String)newStateId);
   Serial.println();
   currentState = newStateId;
 }
-//**********Add reset for pot value for overflows***********
+//End of GoToNextState function
+
+
+// Light GreenLed function
+void GreenLed()
+{
+  //Light the StartStop LED when STARTSTOP button is pressed
+  int buttonStartStopVal = 0; 
+  int instReading = digitalRead(BUTTON_STARTSTOP);  
+  buttonStartStopVal = instReading;
+  buttonStartStopVal = !buttonStartStopVal; //Invert button state to make turn LED on when button is depressed
+  digitalWrite(LED_STARTSTOP, buttonStartStopVal); //Light the green LED when STARTSTOP is pressed.
+}
+//End Light GreenLed function
+
+
+// Light YellowLed function
+void YellowLed()
+{
+  //Light the Adult/Child LED when ADULTCHILD button is pressed
+  int buttonAdultChildVal = 0; 
+  int instReading = digitalRead(BUTTON_ADULTCHILD);  
+  buttonAdultChildVal = instReading;
+  buttonAdultChildVal = !buttonAdultChildVal; //Invert button state to make turn LED on when button is depressed
+  digitalWrite(LED_ADULTCHILD, buttonAdultChildVal); //Light the yellow LED when ADULTCHILD is pressed.
+}
+//End Light YellowLed function
+
+//**********Add reset for TIME pot value to prevent buffer overflows
 
 
 void UpdateSetup() {
+//Runs continuously when we're in the UpdateSetup state.
 // Read and post the time pot value to the display.  Change to minutes:seconds format?
 int averageTimePotValue = 0;
   for(int i = 0; i < NUM_SAMPLES; i++) {
@@ -123,21 +155,25 @@ int averageTimePotValue = 0;
   
   redDisplay.print((int)averageTimePotValue);
   redDisplay.writeDisplay();
+  
 
-  int instReading = digitalRead(BUTTON_STARTSTOP);
-  if(CheckDebounce(instReading)) //if switch is stable (debounced)
+//The StartStop button moves us to the next state.
+
+int instReading = digitalRead(BUTTON_STARTSTOP);
+ if(CheckDebounce(instReading)) //if switch is stable (debounced)
+  
   {
-    Serial.println("You pushed the STARTSTOP switch.");
     GoToNextState(true); //go to PLAY state
   }
 
 }
 
+
 void UpdatePlay() {
   redDisplay.writeDigitNum(0, PLAY);
   redDisplay.writeDisplay();
-  Serial.println("Now we're in the PLAY state.") ;  
-
+  
+//The StartStop button moves us to the next state.
   int instReading = digitalRead(BUTTON_STARTSTOP);
   if(CheckDebounce(instReading)) //if switch is stable (debounced)
   {
@@ -149,7 +185,8 @@ void UpdatePlay() {
 void UpdateFeedback() {
   redDisplay.writeDigitNum(0, FEEDBACK);
   redDisplay.writeDisplay();
-  Serial.println("Now we're in the FEEDBACK state.") ;
+
+//The StartStop button moves us to the next state.
   int instReading = digitalRead(BUTTON_STARTSTOP);
   if(CheckDebounce(instReading)) //if switch is stable (debounced)
   {
@@ -160,7 +197,7 @@ void UpdateFeedback() {
 void UpdateCalibration() {
   redDisplay.writeDigitNum(0, CALIBRATION);
   redDisplay.writeDisplay();
-  Serial.println("Now we're in the CALIBRATION state.") ;
+
     int instReading = digitalRead(BUTTON_STARTSTOP);
   if(CheckDebounce(instReading)) //if switch is stable (debounced)
   {
@@ -170,17 +207,9 @@ void UpdateCalibration() {
 
 // the loop function runs over and over again forever
 void loop() {
-//Light the StartStop LED when button is pressed
-  int BUTTONSTARTSTOPVAL = 0; 
-  int instReading = digitalRead(BUTTON_STARTSTOP);  //If I change this to the STEPSTATE button, nothing advances.
-      BUTTONSTARTSTOPVAL = digitalRead(BUTTON_STARTSTOP);
-      BUTTONSTARTSTOPVAL = !BUTTONSTARTSTOPVAL; //Invert button state to make turn LED on when button is depressed
-      digitalWrite(LED_STARTSTOP, BUTTONSTARTSTOPVAL); 
- 
-  if(CheckDebounce(instReading)) //if switch is stable (debounced)
-  {
-    GoToNextState(true);
-  }
+  GreenLed();
+  YellowLed();
+
 
   bool error = false;
   switch(currentState) {
