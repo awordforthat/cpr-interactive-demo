@@ -172,6 +172,49 @@ int instReading = digitalRead(BUTTON_STARTSTOP);
 void UpdatePlay() {
   redDisplay.writeDigitNum(0, PLAY);
   redDisplay.writeDisplay();
+//Save the time pot value
+//Start countdown to display
+//Verify whether audio is busy - Save condition
+//Read BPM pot. Pass value to each function below
+
+//One function to average BPM every 5 seconds
+  //Detect change in direction
+  //At each 2 changes, add 1 to beats total
+  //After 5 seconds, post current 5-second average to display
+    //If more than 10 seconds and BPM <100, Check if audio is busy
+    //If audio is busy, wait until it's not
+      //else play "go faster". Track next 10 seconds.
+    //else if BPM >100, play "good rate"
+    //Add 5-second beats to total beats
+    //If more than 20 seconds and BPM <100, play "Stayin' Alive intro, then Stayin' Alive
+    //If 10 seconds at right rate, lower volume of music or fade it out and set audio to not busy.
+    
+  //Save number of 5 second periods for final BPM calculation
+  //Add each beat to totalBpm
+  //Calculate beats/minute
+  //Post to display
+//What to do if person simply stops? Operator presses Stop?  
+//Or autodetect something like 2 compressions missed and advance to the next state?
+  
+//One function to check depth of compressions
+// Save current pot value to measure depth
+//Pot value should increase at beginning
+//Look for change in pot value
+//If pot value decreases, save last value and add to total depth
+  //Measure depth of compression
+//Look for change in pot value
+//If pot value increases, save last value and add to total depth
+  //Measure depth of compression
+//If pot value returned to starting value within a tolerance range - OK
+  //Else note shortcoming and save to trigger audio
+//If more than 10 seconds at too shallow, play "Too Shallow" audio
+//  else, play "good depth" audio.
+
+//
+
+
+//If STARTSTOP is pressed wrap it up, then advance to Feedback
+
   
 //The StartStop button moves us to the next state.
   int instReading = digitalRead(BUTTON_STARTSTOP);
@@ -185,6 +228,10 @@ void UpdatePlay() {
 void UpdateFeedback() {
   redDisplay.writeDigitNum(0, FEEDBACK);
   redDisplay.writeDisplay();
+//Post BPM to green display
+//Post average depth of compressions to red display.
+//Play "keep it up until help arrives" 
+
 
 //The StartStop button moves us to the next state.
   int instReading = digitalRead(BUTTON_STARTSTOP);
