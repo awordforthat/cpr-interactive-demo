@@ -4,6 +4,7 @@
 
 #include <Adafruit_GFX.h>
 #include "Adafruit_LEDBackpack.h"
+#include "Button.cpp"
 #include <Wire.h>
 //#include <WaveHC.h>
 //#include <WaveUtil.h>
@@ -40,6 +41,7 @@ StateID currentState = SETUP;
 // variables for setup state
 int previousTimePotValues[NUM_SAMPLES];
 int currentTimePotIndex = 0;
+Button startButton = Button(BUTTON_STARTSTOP);
 const int MAX_NUM_SECONDS = 90;
 const int MIN_NUM_SECONDS = 30;
  
@@ -159,11 +161,8 @@ int averageTimePotValue = 0;
 
 //The StartStop button moves us to the next state.
 
-int instReading = digitalRead(BUTTON_STARTSTOP);
- if(CheckDebounce(instReading)) //if switch is stable (debounced)
-  
-  {
-    GoToNextState(true); //go to PLAY state
+  if(startButton.wasPressed()) {
+    GoToNextState();
   }
 
 }
@@ -217,11 +216,9 @@ void UpdatePlay() {
 
   
 //The StartStop button moves us to the next state.
-  int instReading = digitalRead(BUTTON_STARTSTOP);
-  if(CheckDebounce(instReading)) //if switch is stable (debounced)
-  {
-    GoToNextState(true); //go to FEEDBACK state
-  }
+ if(startButton.wasPressed()) {
+  GoToNextState();
+ }
   
 }
 
@@ -234,28 +231,26 @@ void UpdateFeedback() {
 
 
 //The StartStop button moves us to the next state.
-  int instReading = digitalRead(BUTTON_STARTSTOP);
-  if(CheckDebounce(instReading)) //if switch is stable (debounced)
-  {
-    GoToNextState(true); //go to CALIBRATION state
-  }
+  if(startButton.wasPressed()) {
+  GoToNextState();
+ }
 }
 
 void UpdateCalibration() {
   redDisplay.writeDigitNum(0, CALIBRATION);
   redDisplay.writeDisplay();
 
-    int instReading = digitalRead(BUTTON_STARTSTOP);
-  if(CheckDebounce(instReading)) //if switch is stable (debounced)
-  {
-    GoToNextState(true); //go to SETUP state
-  }
+    if(startButton.wasPressed()) {
+  GoToNextState();
+ }
 }
 
 // the loop function runs over and over again forever
 void loop() {
   GreenLed();
   YellowLed();
+
+  startButton.updateButton();
 
 
   bool error = false;
