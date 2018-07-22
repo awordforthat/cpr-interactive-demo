@@ -1,7 +1,8 @@
 #include <Arduino.h>
 
 class Button {
-    int pinNum;
+    int logicPinNum;
+    int ledPinNum;
     bool value;
     bool triggerVal;
     int currentInstantaneousButtonState = 0;
@@ -11,16 +12,27 @@ class Button {
     unsigned long debounceDelay = 50;
     
   public:
-    Button(int pin, bool triggerValue = LOW, long debounce = 50) {
-        pinNum = pin;
+    Button(int logicPin, int ledPin, bool triggerValue = LOW, long debounce = 50) {
+        logicPinNum = logicPin;
+        ledPinNum = ledPin;
         triggerVal = triggerValue;
         debounceDelay = debounce;
     }
-    
-    bool wasPressed() {return value;}
-    
+
+    // call this to get the value of the button. Note:
+    // this only returns TRUE on the loop where the value changed solidly to the trigger value. A held-down button will not return TRUE while it is pressed.
+    bool wasPressed() {
+      return value;
+      }
+
+    // call this function every loop() so that we check the value of the logic pin every time
     void Button::updateButton() {
-       value = CheckDebounce(digitalRead(pinNum));
+      // these two lines replace the greenLED/yellowLED functions
+       int instReading = digitalRead(logicPinNum);
+       digitalWrite(ledPinNum, !instReading);
+
+       // record the current value in an exposed variable (accessible from the outside via wasPressed()
+       value = CheckDebounce(instReading);
     }
 
     boolean CheckDebounce(int instReading, int triggerVal = LOW)

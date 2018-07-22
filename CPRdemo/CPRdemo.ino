@@ -31,17 +31,13 @@ enum StateID {
 };
 
 // variables common to all states
-int currentInstantaneousButtonState = 0;
-int prevInstantaneousButtonState = 0;
-int prevRealButtonState = 0;
-unsigned long lastDebounceTime = 0;
-unsigned long debounceDelay = 50;
 StateID currentState = SETUP;
 
 // variables for setup state
 int previousTimePotValues[NUM_SAMPLES];
 int currentTimePotIndex = 0;
-Button startButton = Button(BUTTON_STARTSTOP);
+Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD);
+Button startButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
 const int MAX_NUM_SECONDS = 90;
 const int MIN_NUM_SECONDS = 30;
  
@@ -49,12 +45,9 @@ const int MIN_NUM_SECONDS = 30;
 void setup() {
   
   // initialize digital pins.
-	pinMode(LED_PIN, OUTPUT); //Unused now
-	pinMode(LED_BUILTIN, OUTPUT); //Unused now
 	pinMode(LED_STARTSTOP, OUTPUT);
 	pinMode(LED_ADULTCHILD, OUTPUT);
 	pinMode(BUTTON_STARTSTOP, INPUT_PULLUP);
-  pinMode(BUTTON_STEPSTATE, INPUT_PULLUP); //Unused now
 	pinMode(BUTTON_ADULTCHILD, INPUT_PULLUP);
   
   greenDisplay.begin(0x70);
@@ -75,34 +68,6 @@ void setup() {
 } //End setup 
 
 
-//This is the debounce function.  Runs when called.
-boolean CheckDebounce(int instReading, int triggerVal = LOW)
-{
-  boolean returnable = false; // whether or not the input shows a real HIGH value
-  
-  if(instReading != prevInstantaneousButtonState)
-  {
-    lastDebounceTime = millis();
-  } 
-
-  if ((millis() - lastDebounceTime) > debounceDelay) {
-    // in here should be the real reading
-     if(instReading == triggerVal && prevRealButtonState == !triggerVal)
-     {
-       // inside this loop, the trigger value has been solid for 50ms, && the previous real value was the opposite of the trigger
-       returnable = true;
-     }
-     // record the real value for comparing to later
-      prevRealButtonState = instReading;
-  }
-
-  // record the instantaneous reading for the next debounce comparison
-  prevInstantaneousButtonState = instReading;
-
-  return returnable;
-}
-//End debounce function
-
 //This is the GoToNextState function.
 void GoToNextState(bool includeCalibration = false)
 {
@@ -117,29 +82,33 @@ void GoToNextState(bool includeCalibration = false)
 
 
 // Light GreenLed function
-void GreenLed()
-{
-  //Light the StartStop LED when STARTSTOP button is pressed
-  int buttonStartStopVal = 0; 
-  int instReading = digitalRead(BUTTON_STARTSTOP);  
-  buttonStartStopVal = instReading;
-  buttonStartStopVal = !buttonStartStopVal; //Invert button state to make turn LED on when button is depressed
-  digitalWrite(LED_STARTSTOP, buttonStartStopVal); //Light the green LED when STARTSTOP is pressed.
-}
-//End Light GreenLed function
-
-
-// Light YellowLed function
-void YellowLed()
-{
-  //Light the Adult/Child LED when ADULTCHILD button is pressed
-  int buttonAdultChildVal = 0; 
-  int instReading = digitalRead(BUTTON_ADULTCHILD);  
-  buttonAdultChildVal = instReading;
-  buttonAdultChildVal = !buttonAdultChildVal; //Invert button state to make turn LED on when button is depressed
-  digitalWrite(LED_ADULTCHILD, buttonAdultChildVal); //Light the yellow LED when ADULTCHILD is pressed.
-}
-//End Light YellowLed function
+//void GreenLed()
+//{
+//  //Light the StartStop LED when STARTSTOP button is pressed
+//  int buttonStartStopVal = 0; 
+//  int instReading = digitalRead(BUTTON_STARTSTOP);  
+//  buttonStartStopVal = instReading;
+//  buttonStartStopVal = !buttonStartStopVal; //Invert button state to make turn LED on when button is depressed
+//  digitalWrite(LED_STARTSTOP, buttonStartStopVal); //Light the green LED when STARTSTOP is pressed.
+//}
+////End Light GreenLed function
+//
+//
+//// Light YellowLed function
+//void YellowLed()
+//{
+//  //Light the Adult/Child LED when ADULTCHILD button is pressed
+//  int buttonAdultChildVal = 0; 
+//  int instReading = digitalRead(BUTTON_ADULTCHILD);  
+//  buttonAdultChildVal = instReading;
+//  buttonAdultChildVal = !buttonAdultChildVal; //Invert button state to make turn LED on when button is depressed
+//  digitalWrite(LED_ADULTCHILD, buttonAdultChildVal); //Light the yellow LED when ADULTCHILD is pressed.
+//}
+////End Light YellowLed function
+//
+//void HandleLitButtonPress(int buttonPin, int ledPin) {
+//  digitalWrite(ledPin, !digitalRead(buttonPin));
+//}
 
 //**********Add reset for TIME pot value to prevent buffer overflows
 
@@ -240,18 +209,16 @@ void UpdateCalibration() {
   redDisplay.writeDigitNum(0, CALIBRATION);
   redDisplay.writeDisplay();
 
-    if(startButton.wasPressed()) {
-  GoToNextState();
+  if(startButton.wasPressed()) {
+    GoToNextState();
  }
 }
 
 // the loop function runs over and over again forever
 void loop() {
-  GreenLed();
-  YellowLed();
 
+  adultChildButton.updateButton();
   startButton.updateButton();
-
 
   bool error = false;
   switch(currentState) {
