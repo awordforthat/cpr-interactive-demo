@@ -36,11 +36,27 @@ StateID currentState = SETUP;
 // variables for setup state
 int previousTimePotValues[NUM_SAMPLES];
 int currentTimePotIndex = 0;
+int previousbeatsPerMinuteValues[NUM_SAMPLES];
+int currentbeatsPerMinuteIndex = 0;
+int beatsPerMinuteIndex = 0;
+int averageBeatsPerMinute = 0;
+int currentbeatsPerMinutePotValue = 0 ;
+int previousdistanceValues[NUM_SAMPLES];
+int currentdistanceIndex = 0;
+int totalDistance=0;
+int previousDistanceValue = 0;
+int startDistanceValue = 0;
+int directionChangeCounter = 0;
+bool dirPlus = false;
+int totalDepth = 0; //in hundredths of an inch
+
 Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD);
-Button startButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
+Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
+
 const int MAX_NUM_SECONDS = 90;
 const int MIN_NUM_SECONDS = 30;
- 
+const int MAX_NUM_HUNDREDTHS = 200;
+const int MIN_NUM_HUNDREDTHS = 0;
 // the setup function runs once when you press reset or power the board
 void setup() {
   
@@ -61,7 +77,7 @@ void setup() {
   
   Serial.begin(9600);
   
-//Read the TIME pot and post it to the display once.
+//Read the TIME pot 10 times and store the list of values in previousTPVs
   for (int i = 0; i < NUM_SAMPLES; i++) {
    previousTimePotValues[i] =map(analogRead(POT_PIN_TIME), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
 }
@@ -91,7 +107,10 @@ void GoToNextState(bool includeCalibration = false)
 
 void UpdateSetup() {
 //Runs continuously when we're in the UpdateSetup state.
-// Read and post the time pot value to the display.  Change to minutes:seconds format?
+// Read and post the time pot value to the display.  
+// Change to minutes:seconds format?
+
+// Is this just stabilizing the pot value over 10 samples? 
 int averageTimePotValue = 0;
   for(int i = 0; i < NUM_SAMPLES; i++) {
     averageTimePotValue += previousTimePotValues[i];
@@ -106,7 +125,9 @@ int averageTimePotValue = 0;
 
 //The StartStop button moves us to the next state.
 
-  if(startButton.wasPressed()) {
+  if(startStopButton.wasPressed()) {
+    previousDistanceValue = analogRead(POT_PIN_BEATSPERMINUTE);
+    startDistanceValue = previousDistanceValue;
     GoToNextState();
   }
 
@@ -116,13 +137,22 @@ int averageTimePotValue = 0;
 void UpdatePlay() {
   redDisplay.writeDigitNum(0, PLAY);
   redDisplay.writeDisplay();
-//Save the time pot value
+
+//Save the time pot value. Already in averageTimePotValue?
 //Start countdown to display - Format min:sec with blinking colon.
 //Verify whether audio is busy - Save condition
 //Read BPM pot. Pass value to each function below
+ currentbeatsPerMinutePotValue = analogRead(POT_PIN_BEATSPERMINUTE);
 
-//One function to average BPM every 5 seconds
-  //Detect change in direction
+//******Need to determine direction and if there's been a change
+//******ForBPM, need to count changes and /2 and post to the display every 5 seconds or so.
+//******For depth of compressions need to measure distances and /2 amd divide by 100 for inches/compression
+//This function to average BPM every 5 seconds
+
+
+//  
+//  greenDisplay.print((int)averagebeatsPerMinuteValue);
+//  //Detect change in direction
   //At each 2 changes, add 1 to beats total
   //After 5 seconds, post current 5-second average to display
     //If more than 10 seconds and BPM <100, Check if audio is busy
@@ -144,6 +174,30 @@ void UpdatePlay() {
 //One function to check depth of compressions
 // Save current pot value to measure depth
 //Note: Pot value should increase at beginning
+
+
+int currentDistanceValue = currentbeatsPerMinutePotValue;
+if (currentDistanceValue < previousDistanceValue) { //Has direction changed?  If so, going up now.
+  // totalDistance =+ (previousDistanceValue - startDistanceValue); //Add travel amount to totalDistance
+  dirPlus = !dirPlus; //Change direction flag
+  startDistanceValue = currentDistanceValue; //Update start distance
+ }
+
+ if ((currentDistanceValue > previousDistanceValue) && dirPlus == true) { //Has direction changed?  If so, going down now.
+   // totalDistance =+ (startDistanceValue - previousDistanceValue); //Add travel amount to totalDistance 
+   dirPlus = !dirPlus; //Change direction
+   directionChangeCounter ++; //Add one to count to obtain cycles.
+   startDistanceValue = currentDistanceValue; //Update start distance
+  }
+
+  totalDistance += abs(startDistanceValue - previousDistanceValue);
+  previousDistanceValue = currentDistanceValue;
+    
+  
+  
+
+
+
 //Look for change in pot value
 //If pot value decreases, save last value and add to total depth
   //Measure depth of compression  Need to scale pot value to distance.  Map function
@@ -162,7 +216,7 @@ void UpdatePlay() {
 
   
 //The StartStop button moves us to the next state.
- if(startButton.wasPressed()) {
+ if(startStopButton.wasPressed()) {
   GoToNextState();
  }
   
@@ -172,12 +226,18 @@ void UpdateFeedback() {
   redDisplay.writeDigitNum(0, FEEDBACK);
   redDisplay.writeDisplay();
 //Post BPM to green display
-//Post average depth of compressions to red display.
+  
+
+  
+//Post average depth of compressions to green display.
+//  greenDisplay.print((int)averageDistanceValue); 
+//  greenDisplay.writeDisplay(); //Jittery?
+  
 //Play "keep it up until help arrives" 
 
 
 //The StartStop button moves us to the next state.
-  if(startButton.wasPressed()) {
+  if(startStopButton.wasPressed()) {
   GoToNextState();
  }
 }
@@ -186,7 +246,7 @@ void UpdateCalibration() {
   redDisplay.writeDigitNum(0, CALIBRATION);
   redDisplay.writeDisplay();
 
-  if(startButton.wasPressed()) {
+  if(startStopButton.wasPressed()) {
     GoToNextState();
  }
 }
@@ -195,7 +255,7 @@ void UpdateCalibration() {
 void loop() {
 
   adultChildButton.updateButton();
-  startButton.updateButton();
+  startStopButton.updateButton();
 
   bool error = false;
   switch(currentState) {
