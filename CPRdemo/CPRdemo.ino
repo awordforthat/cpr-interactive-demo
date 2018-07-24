@@ -5,6 +5,7 @@
 #include <Adafruit_GFX.h>
 #include "Adafruit_LEDBackpack.h"
 #include "Button.cpp"
+#include "Potentiometer.cpp";
 #include <Wire.h>
 //#include <WaveHC.h>
 //#include <WaveUtil.h>
@@ -53,6 +54,7 @@ int totalDepth = 0; //in hundredths of an inch
 
 Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
 Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
+Potentiometer durationPot = Potentiometer(A0, 10);
 
 const int MAX_NUM_SECONDS = 90;
 const int MIN_NUM_SECONDS = 30;
@@ -79,6 +81,7 @@ void setup() {
   Serial.begin(9600);
   
 //Read the TIME pot 10 times and store the list of values in previousTPVs
+  durationPot.init();
   for (int i = 0; i < NUM_SAMPLES; i++) {
    previousTimePotValues[i] =map(analogRead(POT_PIN_TIME), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
 }
@@ -261,6 +264,9 @@ void loop() {
 
   adultChildButton.updateButton();
   startStopButton.updateButton();
+  durationPot.updatePot();
+
+  Serial.println(durationPot.getRollingAverage());
 
 
   bool error = false;
