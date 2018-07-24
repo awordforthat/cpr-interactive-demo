@@ -32,6 +32,7 @@ enum StateID {
 
 // variables common to all states
 StateID currentState = SETUP;
+bool adultMode = true;
 
 // variables for setup state
 int previousTimePotValues[NUM_SAMPLES];
@@ -50,7 +51,7 @@ int directionChangeCounter = 0;
 bool dirPlus = false;
 int totalDepth = 0; //in hundredths of an inch
 
-Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD);
+Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
 Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
 
 const int MAX_NUM_SECONDS = 90;
@@ -81,6 +82,8 @@ void setup() {
   for (int i = 0; i < NUM_SAMPLES; i++) {
    previousTimePotValues[i] =map(analogRead(POT_PIN_TIME), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
 }
+
+
 } //End setup 
 
 
@@ -110,7 +113,6 @@ void UpdateSetup() {
 // Read and post the time pot value to the display.  
 // Change to minutes:seconds format?
 
-// Is this just stabilizing the pot value over 10 samples? 
 int averageTimePotValue = 0;
   for(int i = 0; i < NUM_SAMPLES; i++) {
     averageTimePotValue += previousTimePotValues[i];
@@ -128,6 +130,9 @@ int averageTimePotValue = 0;
   if(startStopButton.wasPressed()) {
     previousDistanceValue = analogRead(POT_PIN_BEATSPERMINUTE);
     startDistanceValue = previousDistanceValue;
+
+    // read the adult/child button at the moment we exit this state and use that value to determine which mode runs in the play state
+    adultMode = digitalRead(BUTTON_ADULTCHILD);  // I don't remember whether pressed is adult or pressed is child. Invert if necessary
     GoToNextState();
   }
 
@@ -256,6 +261,7 @@ void loop() {
 
   adultChildButton.updateButton();
   startStopButton.updateButton();
+
 
   bool error = false;
   switch(currentState) {

@@ -5,6 +5,7 @@ class Button {
     int ledPinNum;
     bool value;
     bool triggerVal;
+    bool isMomentary;
     int currentInstantaneousButtonState = 0;
     int prevInstantaneousButtonState = 0;
     int prevRealButtonState = 0;
@@ -12,7 +13,8 @@ class Button {
     unsigned long debounceDelay = 50;
     
   public:
-    Button(int logicPin, int ledPin, bool triggerValue = LOW, long debounce = 50) {
+    Button(int logicPin, int ledPin, bool momentary = true, bool triggerValue = LOW, long debounce = 50) {
+        isMomentary = momentary;
         logicPinNum = logicPin;
         ledPinNum = ledPin;
         triggerVal = triggerValue;
@@ -25,19 +27,30 @@ class Button {
       return value;
       }
 
+    bool Button::getRealValue() {
+      return digitalRead(logicPinNum);
+    }
+
     // call this function every loop() so that we check the value of the logic pin every time
     void Button::updateButton() {
-      // these two lines replace the greenLED/yellowLED functions
        int instReading = digitalRead(logicPinNum);
        digitalWrite(ledPinNum, !instReading);
 
-       // record the current value in an exposed variable (accessible from the outside via wasPressed()
-       value = CheckDebounce(instReading);
+       if(!isMomentary) {
+        value = prevInstantaneousButtonState == !instReading;
+        prevInstantaneousButtonState = instReading;
+       }
+       else {
+          // record the current value in an exposed variable (accessible from the outside via wasPressed()
+         value = CheckDebounce(instReading, triggerVal);
+       }
+
+       
     }
 
-    boolean CheckDebounce(int instReading, int triggerVal = LOW)
+    boolean CheckDebounce(int instReading, bool triggerVal)
     {
-      boolean returnable = false; // whether or not the input shows a real HIGH value
+      boolean returnable = false; // whether or not the input shows a real value
       
       if(instReading != prevInstantaneousButtonState)
       {
