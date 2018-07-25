@@ -3,7 +3,7 @@
 class Potentiometer {
     int logicPinNum;
     int bufferSize;
-    int hysteresisBuffer[10];
+    int hysteresisBuffer[100];
     int hysteresisIndex;
     bool value;
 
@@ -41,7 +41,7 @@ class Potentiometer {
 
     // call this function every loop() so that we check the value of the logic pin every time
     void Potentiometer::updatePot() {
-       hysteresisBuffer[hysteresisIndex] = analogRead(logicPinNum);
+       hysteresisBuffer[hysteresisIndex] = (int)analogRead(logicPinNum);
        hysteresisIndex =(hysteresisIndex + 1)  % bufferSize;  
     }
 

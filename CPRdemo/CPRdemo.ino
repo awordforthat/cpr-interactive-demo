@@ -41,11 +41,11 @@ int currentTimePotIndex = 0;
 int previousbeatsPerMinuteValues[NUM_SAMPLES];
 int currentbeatsPerMinuteIndex = 0;
 int beatsPerMinuteIndex = 0;
-int averageBeatsPerMinute = 0;
-int currentbeatsPerMinutePotValue = 0 ;
+
+int currentBeatsPerMinutePotValue = 0 ;
 int previousdistanceValues[NUM_SAMPLES];
 int currentdistanceIndex = 0;
-int totalDistance=0;
+long totalDistance=0;
 int previousDistanceValue = 0;
 int startDistanceValue = 0;
 int directionChangeCounter = 0;
@@ -54,7 +54,8 @@ int totalDepth = 0; //in hundredths of an inch
 
 Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
 Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
-Potentiometer durationPot = Potentiometer(A0, 10);
+Potentiometer bpmPot = Potentiometer(POT_PIN_BEATSPERMINUTE, 100);
+Potentiometer durationPot = Potentiometer(POT_PIN_TIME, 100);
 
 const int MAX_NUM_SECONDS = 90;
 const int MIN_NUM_SECONDS = 30;
@@ -150,7 +151,7 @@ void UpdatePlay() {
 //Start countdown to display - Format min:sec with blinking colon.
 //Verify whether audio is busy - Save condition
 //Read BPM pot. Pass value to each function below
- currentbeatsPerMinutePotValue = analogRead(POT_PIN_BEATSPERMINUTE);
+ currentBeatsPerMinutePotValue = bpmPot.getRollingAverage();
 
 //******Need to determine direction and if there's been a change
 //******ForBPM, need to count changes and /2 and post to the display every 5 seconds or so.
@@ -183,24 +184,31 @@ void UpdatePlay() {
 // Save current pot value to measure depth
 //Note: Pot value should increase at beginning
 
-
-int currentDistanceValue = currentbeatsPerMinutePotValue;
-if (currentDistanceValue < previousDistanceValue) { //Has direction changed?  If so, going up now.
-  // totalDistance =+ (previousDistanceValue - startDistanceValue); //Add travel amount to totalDistance
-  dirPlus = !dirPlus; //Change direction flag
+  
+  //Serial.println("Current bpm pot val: " + (String)currentBeatsPerMinutePotValue);
+  //Serial.println(currentBeatsPerMinutePotValue);
+int currentDistanceValue = currentBeatsPerMinutePotValue / 25; // change to variable
+if ((currentDistanceValue < previousDistanceValue) && !dirPlus) { //Has direction changed?  If so, going up now.
+  Serial.println("Going up");
   startDistanceValue = currentDistanceValue; //Update start distance
+  dirPlus = !dirPlus; //Change direction flag
  }
 
- if ((currentDistanceValue > previousDistanceValue) && dirPlus == true) { //Has direction changed?  If so, going down now.
-   // totalDistance =+ (startDistanceValue - previousDistanceValue); //Add travel amount to totalDistance 
-   dirPlus = !dirPlus; //Change direction
+ if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
    directionChangeCounter ++; //Add one to count to obtain cycles.
+   Serial.println("Going down");
    startDistanceValue = currentDistanceValue; //Update start distance
+   dirPlus = !dirPlus; //Change direction
   }
 
   totalDistance += abs(startDistanceValue - previousDistanceValue);
   previousDistanceValue = currentDistanceValue;
-    
+//  Serial.print("Total Distance ");
+//  Serial.println(totalDistance);
+//  Serial.print("dirPlus is ");
+//  Serial.println(dirPlus);
+//  Serial.print("directionChangeCounter= ");
+//  Serial.println(directionChangeCounter);
   
   
 
@@ -262,11 +270,11 @@ void UpdateCalibration() {
 // the loop function runs over and over again forever
 void loop() {
 
+  // always update inputs, no matter what state we're in
   adultChildButton.updateButton();
   startStopButton.updateButton();
   durationPot.updatePot();
-
-  Serial.println(durationPot.getRollingAverage());
+  bpmPot.updatePot();
 
 
   bool error = false;
