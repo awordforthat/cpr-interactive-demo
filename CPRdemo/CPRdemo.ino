@@ -36,26 +36,18 @@ StateID currentState = SETUP;
 bool adultMode = true;
 
 // variables for setup state
-int previousTimePotValues[NUM_SAMPLES];
-int currentTimePotIndex = 0;
-int previousbeatsPerMinuteValues[NUM_SAMPLES];
-int currentbeatsPerMinuteIndex = 0;
-int beatsPerMinuteIndex = 0;
-
 int currentBeatsPerMinutePotValue = 0 ;
-int previousdistanceValues[NUM_SAMPLES];
-int currentdistanceIndex = 0;
 long totalDistance=0;
-int previousDistanceValue = 0;
-int startDistanceValue = 0;
 int directionChangeCounter = 0;
 bool dirPlus = false;
 int totalDepth = 0; //in hundredths of an inch
+int previousDistanceValue = 0;
+int startDistanceValue = 0;
 
 Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
 Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
 Potentiometer bpmPot = Potentiometer(POT_PIN_BEATSPERMINUTE, 100);
-Potentiometer durationPot = Potentiometer(POT_PIN_TIME, 100);
+Potentiometer durationPot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
 
 const int MAX_NUM_SECONDS = 90;
 const int MIN_NUM_SECONDS = 30;
@@ -83,9 +75,10 @@ void setup() {
   
 //Read the TIME pot 10 times and store the list of values in previousTPVs
   durationPot.init();
-  for (int i = 0; i < NUM_SAMPLES; i++) {
-   previousTimePotValues[i] =map(analogRead(POT_PIN_TIME), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
-}
+  bpmPot.init();
+//  for (int i = 0; i < NUM_SAMPLES; i++) {
+//   previousTimePotValues[i] =map(analogRead(POT_PIN_TIME), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
+//}
 
 
 } //End setup 
@@ -117,15 +110,8 @@ void UpdateSetup() {
 // Read and post the time pot value to the display.  
 // Change to minutes:seconds format?
 
-int averageTimePotValue = 0;
-  for(int i = 0; i < NUM_SAMPLES; i++) {
-    averageTimePotValue += previousTimePotValues[i];
-  }
-  averageTimePotValue = (int)averageTimePotValue/NUM_SAMPLES;
-  previousTimePotValues[currentTimePotIndex % NUM_SAMPLES] = map(analogRead(POT_PIN_TIME), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
-  currentTimePotIndex = currentTimePotIndex + 1;
-  
-  redDisplay.print((int)averageTimePotValue);
+  // gets the smoothed value from the pot, then maps it into the 30-90 second range
+  redDisplay.print((int)map(bpmPot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS));
   redDisplay.writeDisplay();
   
 

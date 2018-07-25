@@ -3,7 +3,7 @@
 class Potentiometer {
     int logicPinNum;
     int bufferSize;
-    int hysteresisBuffer[100];
+    int hysteresisBuffer[100]; // max size 100; by changing bufferSize you can change the effective size to something smaller
     int hysteresisIndex;
     bool value;
 
