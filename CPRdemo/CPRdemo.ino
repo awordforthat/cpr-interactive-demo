@@ -12,14 +12,12 @@
 
 #define POT_PIN_TIME A0 // Input from TIME pot
 #define POT_PIN_BEATSPERMINUTE A1 // Input from BEATSPERMINUTE pot
-#define LED_PIN 11 // Unused right now
 #define BUTTON_STARTSTOP 2 // Set pin 2 for StartStop button
 #define BUTTON_ADULTCHILD 4 // Set pin 4 for AdultChild button
-#define BUTTON_STEPSTATE 5 // Set pin 5 for StepState button
 #define NUM_SAMPLES 10
 #define LED_STARTSTOP 8 // Set pin 8 for Start/Stop button LED
 #define LED_ADULTCHILD 12 //Set pin 12 for Adult/Child button LED
-#define NUM_BPM_SAMPLES 20 // @@@ Step 0: Change this value to the number of samples you want to average the bpm over 
+#define NUM_BPM_SAMPLES 20 
 
 Adafruit_7segment redDisplay = Adafruit_7segment();
 Adafruit_7segment greenDisplay = Adafruit_7segment();
@@ -53,7 +51,7 @@ int previousDistanceValue = 0;
 int startDistanceValue = 0;
 long beatTimes[NUM_BPM_SAMPLES]; //@@@ Step 0.5: this array will hold the millis() values for every compression we record 
 int beatTimesIndex = 0; // @@@ this variable will let us track where we are in the buffer and let us fill the buffer according to FIFO
-
+long changeDirectionTime = 0;
 
 const int MAX_NUM_SECONDS = 90;
 const int MIN_NUM_SECONDS = 30;
@@ -83,10 +81,21 @@ void setup() {
   bpmPot.init();
 
   // @@@ Step 1 - initialize the array
-  // First, read the current value of the bpmPot and store it in a variable.
+  // First, read the current value of the bpmPot and store it in a variable.  Done, but why?  Just to fill the array with values?
   // Next, write a for loop that loops over the beatTimes array 
   // Last, inside the for loop, write the value of the variable to each position in the array
-  
+  int bpmValue = analogRead(POT_PIN_BEATSPERMINUTE);
+  Serial.println("Current bpm pot value is: " + (String)bpmValue);
+  for(int i = 0; i < NUM_BPM_SAMPLES; i++){
+    beatTimes[i] = bpmValue;
+    }
+//analogRead(POT_PIN_BEATSPERMINUTE);
+  for(int i = 0; i < NUM_BPM_SAMPLES; i++){
+      //Serial.println("Array position " + (String)i + " initial value is: " + (String)beatTimes[i] + ", " );
+      Serial.print((String)beatTimes[i] + ", ");
+      }
+      Serial.println();
+//Whew!
 } //End setup 
 
 
@@ -147,8 +156,6 @@ void UpdatePlay() {
 
 //  
 //  greenDisplay.print((int)averagebeatsPerMinuteValue);
-//  //Detect change in direction
-  //At each 2 changes, add 1 to beats total
   //After 5 seconds, post current 5-second average to display
     //If more than 10 seconds and BPM <100, Check if audio is busy
     //If audio is busy, wait until it's not
@@ -180,60 +187,53 @@ if ((currentDistanceValue < previousDistanceValue) && !dirPlus) { //Has directio
   dirPlus = !dirPlus; //Change direction flag
  }
 
- if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
+if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
    directionChangeCounter ++; //Add one to count to obtain cycles.
    Serial.println("Going down");
    startDistanceValue = currentDistanceValue; //Update start distance
    dirPlus = !dirPlus; //Change direction
 
-   // @@@ Step 3 - Store the time of this "going down" change in direction in the beatTimes buffer
-   // (A) First, get the time that this beat happened: create a variable and store millis() inside it (that's the number of milliseconds since the program started)
-   // (B) Next, calculate where this value should go in the buffer. You will need to use the beatTimesIndex variable and the modulo operator.
-   //   See the Potentiometer class on line 45 for an idea of how to do this.
-   // (C) Last, write the time you calculated in (A) into the beatTimes buffer at the position you calculated in (B)
-   // (D) For sanity's sake, print out the whole buffer to the Serial console. Use this for loop (make sure you also uncomment the final Serial.println():
 
-//    for(int i = 0; i < NUM_BPM_SAMPLES; i++){
-//      Serial.print((String)beatTimes[i] + ", " );
-//    }
-//    Serial.println();
-  }
+  changeDirectionTime = millis();
+  beatTimes[beatTimesIndex] = changeDirectionTime;
+  beatTimesIndex = ((beatTimesIndex + 1) % NUM_BPM_SAMPLES);
+  //Serial.println("beatTimesIndex = " + (String)beatTimesIndex);
 
+  // TODO: calculate bpm every loop based on some time span (most recent N seconds)
+  // TODO: calculate average distance compressed. Question: rolling or gross? 
+
+
+//  for(int i = 0; i < NUM_BPM_SAMPLES; i++){
+//      //Serial.println("Array position " + (String)i + " actual beat time value is: " + (String)beatTimes[i] + ", " );
+//      Serial.print((String)beatTimes[i] + ", ");
+//  }
+//  Serial.println();
+
+ }
+ 
   totalDistance += abs(startDistanceValue - previousDistanceValue);
   previousDistanceValue = currentDistanceValue;
-//  Serial.print("Total Distance ");
-//  Serial.println(totalDistance);
-//  Serial.print("dirPlus is ");
-//  Serial.println(dirPlus);
-//  Serial.print("directionChangeCounter= ");
-//  Serial.println(directionChangeCounter);
   
+//  Serial.print("Total Distance " + (String)totalDistance);
+//  Serial.print("dirPlus is " + (String)dirPlus);
+//  Serial.print("directionChangeCounter= " + (String)directionChangeCounter);
   
 
-
-
-//Look for change in pot value
-//If pot value decreases, save last value and add to total depth
   //Measure depth of compression  Need to scale pot value to distance.  Map function
-//Look for change in pot value
-//If pot value increases, save last value and add to total depth
   //Measure depth of compression
 //If pot value returned to starting value within a tolerance range - OK
   //Else note shortcoming and save to trigger audio
 //If more than 10 seconds at too shallow, play "Too Shallow" audio
 //  else, play "good depth" audio.
 
-//
-
-
 //If STARTSTOP is pressed wrap it up, then advance to Feedback
 
-  
 //The StartStop button moves us to the next state.
  if(startStopButton.wasPressed()) {
   GoToNextState();
  }
-  
+
+ 
 }
 
 void UpdateFeedback() {
