@@ -36,7 +36,7 @@ bool adultMode = true;
 Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
 Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
 Potentiometer bpmPot = Potentiometer(POT_PIN_BEATSPERMINUTE, 100);
-Potentiometer durationPot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
+Potentiometer timePot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
 
 // variables for setup state
 int currentBeatsPerMinutePotValue = 0 ;
@@ -46,17 +46,24 @@ int currentBeatsPerMinutePotValue = 0 ;
 long totalDistance=0;
 int directionChangeCounter = 0;
 bool dirPlus = false;
-int totalDepth = 0; //in hundredths of an inch
+int totalDepth = 0; //in hundredths of an inch?
 int previousDistanceValue = 0;
 int startDistanceValue = 0;
-long beatTimes[NUM_BPM_SAMPLES]; //@@@ Step 0.5: this array will hold the millis() values for every compression we record 
-int beatTimesIndex = 0; // @@@ this variable will let us track where we are in the buffer and let us fill the buffer according to FIFO
+long beatTimes[NUM_BPM_SAMPLES]; //This array will hold the millis() values for every compression we record 
+int beatTimesIndex = 0; // This variable will let us track where we are in the buffer and let us fill the buffer according to FIFO
+int averageBpm = 0;
+int beatCounter = 0;
+int averageBpmStartTime = 0; 
+int averageBpmCounterStart = 0;
+int averageBpmCounterEnd = 0;
 long changeDirectionTime = 0;
 
 const int MAX_NUM_SECONDS = 90;
 const int MIN_NUM_SECONDS = 30;
 const int MAX_NUM_HUNDREDTHS = 200;
 const int MIN_NUM_HUNDREDTHS = 0;
+
+
 // the setup function runs once when you press reset or power the board
 void setup() {
   
@@ -77,7 +84,7 @@ void setup() {
   
   Serial.begin(9600);
   
-  durationPot.init();
+  timePot.init();
   bpmPot.init();
 
   // @@@ Step 1 - initialize the array
@@ -95,7 +102,7 @@ void setup() {
       Serial.print((String)beatTimes[i] + ", ");
       }
       Serial.println();
-//Whew!
+      
 } //End setup 
 
 
@@ -111,7 +118,7 @@ void GoToNextState(bool includeCalibration = false)
 }
 //End of GoToNextState function
 
-//**********Add reset for TIME pot value to prevent buffer overflows
+//**********Add reset for TIME pot value to prevent buffer overflows?
 
 
 void UpdateSetup() {
@@ -119,8 +126,8 @@ void UpdateSetup() {
 // Read and post the time pot value to the display.  
 // Change to minutes:seconds format?
 
-  // gets the smoothed value from the pot, then maps it into the 30-90 second range
-  redDisplay.print((int)map(bpmPot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS));
+  // gets the smoothed value from the time pot, then maps it into the 30-90 second range
+  redDisplay.print((int)map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS));
   redDisplay.writeDisplay();
   
 
@@ -129,6 +136,7 @@ void UpdateSetup() {
   if(startStopButton.wasPressed()) {
     previousDistanceValue = analogRead(POT_PIN_BEATSPERMINUTE);
     startDistanceValue = previousDistanceValue;
+    averageBpmStartTime = millis(); 
 
     // read the adult/child button at the moment we exit this state and use that value to determine which mode runs in the play state
     adultMode = digitalRead(BUTTON_ADULTCHILD);  // I don't remember whether pressed is adult or pressed is child. Invert if necessary
@@ -145,6 +153,7 @@ void UpdatePlay() {
 //Save the time pot value. Already in averageTimePotValue?
 //Start countdown to display - Format min:sec with blinking colon.
 //Verify whether audio is busy - Save condition
+
 //Read BPM pot. Pass value to each function below
  currentBeatsPerMinutePotValue = bpmPot.getRollingAverage();
 
@@ -193,13 +202,40 @@ if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has directio
    startDistanceValue = currentDistanceValue; //Update start distance
    dirPlus = !dirPlus; //Change direction
 
-
+  //Store the last cycle time in an array after each beat cycle - up to NUM_BPM_SAMPLES
   changeDirectionTime = millis();
   beatTimes[beatTimesIndex] = changeDirectionTime;
+  beatCounter ++;
   beatTimesIndex = ((beatTimesIndex + 1) % NUM_BPM_SAMPLES);
   //Serial.println("beatTimesIndex = " + (String)beatTimesIndex);
 
   // TODO: calculate bpm every loop based on some time span (most recent N seconds)
+//bpmCounterStart was initialized at 0
+//bpmCounterEnd was initialized at 0
+//averageBpmStartTime was initialized at current millis() at start of state
+if (millis() >= (averageBpmStartTime + 10000)) {
+  averageBpmCounterEnd = beatCounter;
+  int averageBpmCount = (averageBpmCounterEnd - averageBpmCounterStart);
+  Serial.println("averageBpmCount is: " + (String)averageBpmCount);
+//  int averageBpmDuration = (millis() - averageBpmStartTime); 
+//  Serial.println("averageBpmDuration in milliseconds is: " + (String)averageBpmDuration);
+
+
+  averageBpm = (averageBpmCount*6);
+  Serial.println("beatCounter is " + (String)beatCounter);
+  Serial.println("averageBpmCounterStart is " + (String)averageBpmCounterStart);
+  Serial.println("averageBpmCounterEnd is " + (String)averageBpmCounterEnd);
+  Serial.println("Average BPM is " + (String)averageBpm);
+  averageBpmStartTime = millis();
+  averageBpmCounterStart = averageBpmCounterEnd;
+}
+
+// store this and get the current beats counter
+
+//Divide the result by averageBeatsPerMinuteCounter
+
+//Store in averageBeatsPerMinute
+  
   // TODO: calculate average distance compressed. Question: rolling or gross? 
 
 
@@ -214,9 +250,9 @@ if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has directio
   totalDistance += abs(startDistanceValue - previousDistanceValue);
   previousDistanceValue = currentDistanceValue;
   
-//  Serial.print("Total Distance " + (String)totalDistance);
-//  Serial.print("dirPlus is " + (String)dirPlus);
-//  Serial.print("directionChangeCounter= " + (String)directionChangeCounter);
+//  Serial.println("Total Distance " + (String)totalDistance);
+//  Serial.println("dirPlus is " + (String)dirPlus);
+//  Serial.println("directionChangeCounter= " + (String)directionChangeCounter);
   
 
   //Measure depth of compression  Need to scale pot value to distance.  Map function
@@ -271,7 +307,7 @@ void loop() {
   // always update inputs, no matter what state we're in
   adultChildButton.updateButton();
   startStopButton.updateButton();
-  durationPot.updatePot();
+  timePot.updatePot();
   bpmPot.updatePot();
 
 
