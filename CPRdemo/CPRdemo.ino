@@ -19,6 +19,7 @@
 #define NUM_SAMPLES 10
 #define LED_STARTSTOP 8 // Set pin 8 for Start/Stop button LED
 #define LED_ADULTCHILD 12 //Set pin 12 for Adult/Child button LED
+#define NUM_BPM_SAMPLES 20 // @@@ Step 0: Change this value to the number of samples you want to average the bpm over 
 
 Adafruit_7segment redDisplay = Adafruit_7segment();
 Adafruit_7segment greenDisplay = Adafruit_7segment();
@@ -34,20 +35,25 @@ enum StateID {
 // variables common to all states
 StateID currentState = SETUP;
 bool adultMode = true;
+Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
+Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
+Potentiometer bpmPot = Potentiometer(POT_PIN_BEATSPERMINUTE, 100);
+Potentiometer durationPot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
 
 // variables for setup state
 int currentBeatsPerMinutePotValue = 0 ;
+
+
+// variables for play state
 long totalDistance=0;
 int directionChangeCounter = 0;
 bool dirPlus = false;
 int totalDepth = 0; //in hundredths of an inch
 int previousDistanceValue = 0;
 int startDistanceValue = 0;
+long beatTimes[NUM_BPM_SAMPLES]; //@@@ Step 0.5: this array will hold the millis() values for every compression we record 
+int beatTimesIndex = 0; // @@@ this variable will let us track where we are in the buffer and let us fill the buffer according to FIFO
 
-Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
-Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
-Potentiometer bpmPot = Potentiometer(POT_PIN_BEATSPERMINUTE, 100);
-Potentiometer durationPot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
 
 const int MAX_NUM_SECONDS = 90;
 const int MIN_NUM_SECONDS = 30;
@@ -73,14 +79,14 @@ void setup() {
   
   Serial.begin(9600);
   
-//Read the TIME pot 10 times and store the list of values in previousTPVs
   durationPot.init();
   bpmPot.init();
-//  for (int i = 0; i < NUM_SAMPLES; i++) {
-//   previousTimePotValues[i] =map(analogRead(POT_PIN_TIME), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
-//}
 
-
+  // @@@ Step 1 - initialize the array
+  // First, read the current value of the bpmPot and store it in a variable.
+  // Next, write a for loop that loops over the beatTimes array 
+  // Last, inside the for loop, write the value of the variable to each position in the array
+  
 } //End setup 
 
 
@@ -95,12 +101,6 @@ void GoToNextState(bool includeCalibration = false)
   currentState = newStateId;
 }
 //End of GoToNextState function
-
-
-
-//void HandleLitButtonPress(int buttonPin, int ledPin) {
-//  digitalWrite(ledPin, !digitalRead(buttonPin));
-//}
 
 //**********Add reset for TIME pot value to prevent buffer overflows
 
@@ -185,6 +185,18 @@ if ((currentDistanceValue < previousDistanceValue) && !dirPlus) { //Has directio
    Serial.println("Going down");
    startDistanceValue = currentDistanceValue; //Update start distance
    dirPlus = !dirPlus; //Change direction
+
+   // @@@ Step 3 - Store the time of this "going down" change in direction in the beatTimes buffer
+   // (A) First, get the time that this beat happened: create a variable and store millis() inside it (that's the number of milliseconds since the program started)
+   // (B) Next, calculate where this value should go in the buffer. You will need to use the beatTimesIndex variable and the modulo operator.
+   //   See the Potentiometer class on line 45 for an idea of how to do this.
+   // (C) Last, write the time you calculated in (A) into the beatTimes buffer at the position you calculated in (B)
+   // (D) For sanity's sake, print out the whole buffer to the Serial console. Use this for loop (make sure you also uncomment the final Serial.println():
+
+//    for(int i = 0; i < NUM_BPM_SAMPLES; i++){
+//      Serial.print((String)beatTimes[i] + ", " );
+//    }
+//    Serial.println();
   }
 
   totalDistance += abs(startDistanceValue - previousDistanceValue);
