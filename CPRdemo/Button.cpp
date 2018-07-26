@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 class Button {
-    int logicPinNum;
+    byte logicPinNum;
     int ledPinNum;
     bool value;
     bool triggerVal;

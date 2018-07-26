@@ -7,7 +7,7 @@
 #include "Button.cpp"
 #include "Potentiometer.cpp";
 #include <Wire.h>
-//#include <WaveHC.h>
+#include <WaveHC.h>
 //#include <WaveUtil.h>
 
 #define POT_PIN_TIME A0 // Input from TIME pot
@@ -31,11 +31,11 @@ enum StateID {
 };
 
 // variables common to all states
-StateID currentState = SETUP;
+StateID currentState = PLAY;
 bool adultMode = true;
 Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
 Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
-Potentiometer bpmPot = Potentiometer(POT_PIN_BEATSPERMINUTE, 100);
+Potentiometer bpmPot = Potentiometer(POT_PIN_BEATSPERMINUTE, 10);
 Potentiometer timePot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
 
 // variables for setup state
@@ -49,19 +49,20 @@ bool dirPlus = false;
 int totalDepth = 0; //in hundredths of an inch?
 int previousDistanceValue = 0;
 int startDistanceValue = 0;
-long beatTimes[NUM_BPM_SAMPLES]; //This array will hold the millis() values for every compression we record 
-int beatTimesIndex = 0; // This variable will let us track where we are in the buffer and let us fill the buffer according to FIFO
+//long beatTimes[NUM_BPM_SAMPLES]; //This array will hold the millis() values for every compression we record 
+//int beatTimesIndex = 0; // This variable will let us track where we are in the buffer and let us fill the buffer according to FIFO
 int averageBpm = 0;
 int beatCounter = 0;
-int averageBpmStartTime = 0; 
+long averageBpmStartTime = 0; 
 int averageBpmCounterStart = 0;
-int averageBpmCounterEnd = 0;
-long changeDirectionTime = 0;
 
-const int MAX_NUM_SECONDS = 90;
+const byte MAX_NUM_SECONDS = 90;
 const int MIN_NUM_SECONDS = 30;
 const int MAX_NUM_HUNDREDTHS = 200;
 const int MIN_NUM_HUNDREDTHS = 0;
+
+// TODO: optimize memory by changing variable types to the smallest unit that will accommodate their range of values
+// Variable size reference: https://learn.sparkfun.com/tutorials/data-types-in-arduino
 
 
 // the setup function runs once when you press reset or power the board
@@ -86,22 +87,8 @@ void setup() {
   
   timePot.init();
   bpmPot.init();
-
-  // @@@ Step 1 - initialize the array
-  // First, read the current value of the bpmPot and store it in a variable.  Done, but why?  Just to fill the array with values?
-  // Next, write a for loop that loops over the beatTimes array 
-  // Last, inside the for loop, write the value of the variable to each position in the array
+  
   int bpmValue = analogRead(POT_PIN_BEATSPERMINUTE);
-  Serial.println("Current bpm pot value is: " + (String)bpmValue);
-  for(int i = 0; i < NUM_BPM_SAMPLES; i++){
-    beatTimes[i] = bpmValue;
-    }
-//analogRead(POT_PIN_BEATSPERMINUTE);
-  for(int i = 0; i < NUM_BPM_SAMPLES; i++){
-      //Serial.println("Array position " + (String)i + " initial value is: " + (String)beatTimes[i] + ", " );
-      Serial.print((String)beatTimes[i] + ", ");
-      }
-      Serial.println();
       
 } //End setup 
 
@@ -203,40 +190,16 @@ if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has directio
    dirPlus = !dirPlus; //Change direction
 
   //Store the last cycle time in an array after each beat cycle - up to NUM_BPM_SAMPLES
-  changeDirectionTime = millis();
-  beatTimes[beatTimesIndex] = changeDirectionTime;
+//  changeDirectionTime = millis();
+//  beatTimes[beatTimesIndex] = changeDirectionTime;
   beatCounter ++;
-  beatTimesIndex = ((beatTimesIndex + 1) % NUM_BPM_SAMPLES);
+//  beatTimesIndex = ((beatTimesIndex + 1) % NUM_BPM_SAMPLES);
   //Serial.println("beatTimesIndex = " + (String)beatTimesIndex);
 
-  // TODO: calculate bpm every loop based on some time span (most recent N seconds)
-//bpmCounterStart was initialized at 0
-//bpmCounterEnd was initialized at 0
-//averageBpmStartTime was initialized at current millis() at start of state
-if (millis() >= (averageBpmStartTime + 10000)) {
-  averageBpmCounterEnd = beatCounter;
-  int averageBpmCount = (averageBpmCounterEnd - averageBpmCounterStart);
-  Serial.println("averageBpmCount is: " + (String)averageBpmCount);
-//  int averageBpmDuration = (millis() - averageBpmStartTime); 
-//  Serial.println("averageBpmDuration in milliseconds is: " + (String)averageBpmDuration);
-
-
-  averageBpm = (averageBpmCount*6);
-  Serial.println("beatCounter is " + (String)beatCounter);
-  Serial.println("averageBpmCounterStart is " + (String)averageBpmCounterStart);
-  Serial.println("averageBpmCounterEnd is " + (String)averageBpmCounterEnd);
-  Serial.println("Average BPM is " + (String)averageBpm);
-  averageBpmStartTime = millis();
-  averageBpmCounterStart = averageBpmCounterEnd;
-}
-
-// store this and get the current beats counter
-
-//Divide the result by averageBeatsPerMinuteCounter
-
-//Store in averageBeatsPerMinute
-  
-  // TODO: calculate average distance compressed. Question: rolling or gross? 
+  // TODO: calculate average distance compressed. Rolling and gross 
+//Measure every compression both ways - two variables to store most recent N strokes. Reset after each evaluation
+//Every few compressions verify good depth and good return - use modulo on beatCounter to determine when to evaluate
+//Accumulate total depth and total beats to report average depth at the end - this is a third variable that is the sum of all the compressions both ways
 
 
 //  for(int i = 0; i < NUM_BPM_SAMPLES; i++){
@@ -246,7 +209,26 @@ if (millis() >= (averageBpmStartTime + 10000)) {
 //  Serial.println();
 
  }
- 
+
+  // TODO: create variable for sample duration and multiplier to get BPM
+ if (millis() >= (averageBpmStartTime + 5000)) {
+
+  int averageBpmCount = (beatCounter - averageBpmCounterStart);
+  Serial.println("averageBpmCount is: " + (String)averageBpmCount);
+//  int averageBpmDuration = (millis() - averageBpmStartTime); 
+//  Serial.println("averageBpmDuration in milliseconds is: " + (String)averageBpmDuration);
+
+
+  averageBpm = (averageBpmCount*12);
+//  Serial.println("beatCounter is " + (String)beatCounter);
+//  Serial.println("averageBpmCounterStart is " + (String)averageBpmCounterStart);
+//  Serial.println("averageBpmCounterEnd is " + (String)averageBpmCounterEnd);
+  Serial.println("Average BPM is " + (String)averageBpm);
+  averageBpmStartTime = millis();
+  averageBpmCounterStart = beatCounter;
+// TODO: Post AvgBpm to green display
+}
+
   totalDistance += abs(startDistanceValue - previousDistanceValue);
   previousDistanceValue = currentDistanceValue;
   
