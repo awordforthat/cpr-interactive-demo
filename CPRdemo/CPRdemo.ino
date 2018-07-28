@@ -7,7 +7,7 @@
 #include "Button.cpp"
 #include "Potentiometer.cpp";
 #include <Wire.h>
-#include <WaveHC.h>
+//#include <WaveHC.h>
 //#include <WaveUtil.h>
 
 #define POT_PIN_TIME A0 // Input from TIME pot
@@ -17,7 +17,7 @@
 #define NUM_SAMPLES 10
 #define LED_STARTSTOP 8 // Set pin 8 for Start/Stop button LED
 #define LED_ADULTCHILD 12 //Set pin 12 for Adult/Child button LED
-#define NUM_BPM_SAMPLES 20
+#define NUM_BPM_SAMPLES 20 
 
 Adafruit_7segment redDisplay = Adafruit_7segment();
 Adafruit_7segment greenDisplay = Adafruit_7segment();
@@ -38,47 +38,50 @@ Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
 Potentiometer bpmPot = Potentiometer(POT_PIN_BEATSPERMINUTE, 10);
 Potentiometer timePot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
 
-//***********
-unsigned long previousMillis = 0;        // will store last time LED was updated
-const long interval = 1000;           // interval at which to blink (milliseconds) Usually 1000
-boolean drawDots = false;  //A variable to hold whether to display dots or not
-unsigned long startTime = 0;
-//start Time will be selected by user with a pot value.
-//For now it's being set as a fixed value.
-unsigned long CntDn = startTime;
-unsigned long currentMillis = millis();
-int seconds; //Actual seconds
-int minutes; //Actual minutes
-int hours; //Actual hours
-const int secsPerHour = 3600;
-const int secsPerMinute = 60;
-int dotCount = 0; //Counter for doubling dot display speed
-//************
+////***********
+//unsigned long previousMillis = 0;        // will store last time LED was updated
+//const long interval = 1000;           // interval at which to blink (milliseconds) Usually 1000  Why is this long variable?
+//boolean drawDots = false;  //A variable to hold whether to display dots or not
+//unsigned long startTime = 0;
+////start Time will be selected by user with a pot value.  
+//                    //For now it's being set as a fixed value.
+//unsigned long timeCountDown = startTime;
+//unsigned long currentMillis = millis();
+//int seconds; //Actual seconds
+//int minutes; //Actual minutes
+//int hours; //Actual hours
+//const int secsPerHour = 3600;
+//const int secsPerMinute = 60;
+//int dotCount = 0; //Counter for doubling dot display speed
+////************
 
 // variables for setup state
 int currentBeatsPerMinutePotValue = 0 ;
 
 
 // variables for play state
-long totalDistance = 0; //Try to divide the source so an int can be used.
+long totalDistance=0; //Try to divide the source so an int can be used.
 int directionChangeCounter = 0;
 bool dirPlus = false;
 int totalDepth = 0; //in hundredths of an inch?
 int previousDistanceValue = 0;
 int startDistanceValue = 0;
-//long beatTimes[NUM_BPM_SAMPLES]; //This array will hold the millis() values for every compression we record
-//int beatTimesIndex = 0; // This variable will let us track where we are in the buffer and let us fill the buffer according to FIFO
 int averageBpm = 0;
 int beatCounter = 0;
-long averageBpmStartTime = 0;
+long averageBpmStartTime = 0; 
 int averageBpmCounterStart = 0;
-unsigned long previousBlink = millis();
-int blinkInterval = 500;
 
+////**********
+//unsigned long previousBlink = millis();
+//
+//const int BLINK_INTERVAL = 500; 
+
+
+////**********
 const int AVERAGE_BPM_SAMPLE_TIME = 5000;//How long between averaging and postings of averageBpm, in millis().
-const int BPM_CONVERT = (60 / (AVERAGE_BPM_SAMPLE_TIME / 1000));
+const int BPM_CONVERT = (60 / (AVERAGE_BPM_SAMPLE_TIME/1000));
 const int MAX_NUM_SECONDS = 90;
-const int MIN_NUM_SECONDS = 11;
+const int MIN_NUM_SECONDS = 30;
 const int MAX_NUM_HUNDREDTHS = 200;
 const int MIN_NUM_HUNDREDTHS = 0;
 
@@ -88,32 +91,33 @@ const int MIN_NUM_HUNDREDTHS = 0;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
-
+  
   // initialize digital pins.
   pinMode(LED_STARTSTOP, OUTPUT);
   pinMode(LED_ADULTCHILD, OUTPUT);
   pinMode(BUTTON_STARTSTOP, INPUT_PULLUP);
   pinMode(BUTTON_ADULTCHILD, INPUT_PULLUP);
-
+  
   greenDisplay.begin(0x70);
   redDisplay.begin(0x71);
 
-  //Clear the displays
+  //Clear the displays and set brightness
   greenDisplay.clear();
   greenDisplay.writeDisplay();
   redDisplay.clear();
   redDisplay.writeDisplay();
-  redDisplay.setBrightness (8);  //Values 0-15
-  greenDisplay.setBrightness (15);  //Values 0-15
+
+////**********
+//  redDisplay.setBrightness (8);  //Values 0-15
+//  greenDisplay.setBrightness (15);  //Values 0-15
+////**********
 
   Serial.begin(9600);
-
+  
   timePot.init();
   bpmPot.init();
-
-  int bpmValue = analogRead(POT_PIN_BEATSPERMINUTE);
-
-} //End setup
+  int bpmValue = analogRead(POT_PIN_BEATSPERMINUTE);//Unused      
+} //End setup 
 
 
 //This is the GoToNextState function.
@@ -121,7 +125,7 @@ void GoToNextState(bool includeCalibration = false)
 {
   Serial.println("Old state id: " + (String)currentState);
   int newStateId = (currentState + 1) % (includeCalibration ? 4 : 3);
-
+ 
   Serial.println("New state id: " + (String)newStateId);
   Serial.println();
   currentState = newStateId;
@@ -131,241 +135,218 @@ void GoToNextState(bool includeCalibration = false)
 //TODO: Add reset for TIME pot value to prevent buffer overflows?
 
 void UpdateSetup() {
-  //Runs continuously when we're in the UpdateSetup state.
-  // Change to minutes:seconds format?
+// TODO: Change to minutes:seconds format?
 
-  // gets the smoothed value from the time pot, then maps it into the 30-90 second range
+  // gets the smoothed value from the time pot, then maps it into the min-max second range
   redDisplay.print((int)map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS));
   redDisplay.writeDisplay();
+  
+//The StartStop button moves us to the next state.
 
-
-  //The StartStop button moves us to the next state.
-
-  if (startStopButton.wasPressed()) {
-
-    //*********
-    CntDn = map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
-    //********
-    Serial.println("CntDn= " + (String)CntDn);
+  if(startStopButton.wasPressed()) {
+    
+//    //*********
+//    timeCountDown = map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
+//    Serial.println("timeCountDown= " + (String)timeCountDown);
+//    //********    
     previousDistanceValue = analogRead(POT_PIN_BEATSPERMINUTE);
     startDistanceValue = previousDistanceValue;
-    averageBpmStartTime = millis();
+    averageBpmStartTime = millis(); 
 
     // read the adult/child button at the moment we exit this state and use that value to determine which mode runs in the play state
-    adultMode = digitalRead(BUTTON_ADULTCHILD);  // I don't remember whether pressed is adult or pressed is child. Invert if necessary
-    GoToNextState();
+   adultMode = digitalRead(BUTTON_ADULTCHILD);  // I don't remember whether pressed is adult or pressed is child. Invert if necessary
+   GoToNextState();
   }
 
 }
 
 
 void UpdatePlay() {
-  //  redDisplay.writeDigitNum(0, PLAY);
-  //  redDisplay.writeDisplay();
-
-  //***********
-  if (seconds < 10) {
-    redDisplay.writeDigitNum(3, 0);
-    redDisplay.writeDisplay();
-  }
-
-  redDisplay.drawColon(drawDots);
+  redDisplay.writeDigitNum(0, PLAY);
   redDisplay.writeDisplay();
 
-  // check to see if it's time to update the display; that is, if the difference
-  // between the current time and last time you updated the display is bigger than
-  // the interval at which you want to update the display.
+////***********
+//  if (seconds < 10) {
+//    redDisplay.writeDigitNum(3, 0);
+//    redDisplay.writeDisplay();
+//  }
+//
+//  redDisplay.drawColon(drawDots);
+//  redDisplay.writeDisplay();
+//  
+//// check to see if it's time to update the display; that is, if the difference
+//// between the current time and last time you updated the display is bigger than
+//// the interval at which you want to update the display.
+//
+//  currentMillis = millis(); //Set up counter to blink colon every half second
+//  
+//  if (currentMillis - previousBlink >= BLINK_INTERVAL){
+//    // If a half second has elapsed, do all these things
+//    previousBlink = currentMillis;
+//    redDisplay.drawColon(drawDots);
+//    redDisplay.writeDisplay();
+//    drawDots = !drawDots; //invert drawDots state
+//   }
+//    
+//  if (currentMillis - previousMillis >= interval) {
+//    // save the last time you updated the display
+//    previousMillis = currentMillis;
+//  
+//    //If one second has elapsed, do all these things
+////    Serial.println("Update display");
+//    hours = (timeCountDown - (timeCountDown % secsPerHour)) / secsPerHour; 
+//    minutes = ((timeCountDown - (timeCountDown % secsPerMinute) - (hours * secsPerHour))) / secsPerMinute; // secsPerMinute;
+//    seconds = ((timeCountDown % secsPerHour) % secsPerMinute);
+//    if (minutes == 0){
+//      if (seconds < 10) {
+//        redDisplay.writeDigitNum(3, 0);
+//      }
+//    }
+//
+//    int displayValue = (minutes*100) + seconds; //To be pushed to the display.
+//    redDisplay.print(displayValue);
+//    redDisplay.writeDisplay();
+//
+//    timeCountDown--; //Decrement countdown counter
+//
+//
+////        /*When countdown reaches zero, ship out last value: "0".  
+////    Need to clean up so zero and colon display properly for display of 0 and 1.*/
+////
+////    if(timeCountDown == 0){
+////      drawDots = !drawDots; //invert drawDots state 
+////      redDisplay.drawColon(drawDots);
+////      redDisplay.writeDisplay();
+////      
+////      delay(1000); //Need to clean this up so as not to use a delay statement.
+////
+////      redDisplay.print(timeCountDown);
+////      redDisplay.writeDisplay();
+////   
+////      greenDisplay.print(timeCountDown);;
+////      greenDisplay.writeDisplay();
+//
+////**********
 
-  currentMillis = millis(); //Set up counter to blink colon every half second
-
-  if (currentMillis - previousBlink >= blinkInterval) {
-    // If a half second has elapsed, do all these things
-    previousBlink = currentMillis;
-
-
-    redDisplay.drawColon(drawDots);
-    redDisplay.writeDisplay();
-    drawDots = !drawDots; //invert drawDots state
-
-  }
-
-  if (currentMillis - previousMillis >= interval) {
-    // save the last time you updated the display
-    previousMillis = currentMillis;
-
-    //If one second has elapsed, do all these things
-    //    Serial.println("Update display");
-    hours = (CntDn - (CntDn % secsPerHour)) / secsPerHour;
-    minutes = ((CntDn - (CntDn % secsPerMinute) - (hours * secsPerHour))) / secsPerMinute; // secsPerMinute;
-    seconds = ((CntDn % secsPerHour) % secsPerMinute);
-    if (minutes == 0) {
-      if (seconds < 10) {
-        redDisplay.writeDigitNum(3, 0);
-      }
-    }
-
-    int displayValue = (minutes * 100) + seconds; //To be pushed to the display.
-    redDisplay.print(displayValue);
-    redDisplay.writeDisplay();
-
-    CntDn--; //Decrement countdown counter
-
-
-    //        /*When countdown reaches zero, ship out last value: "0".
-    //    Need to clean up so zero and colon display properly for display of 0 and 1.*/
-    //
-    //    if(CntDn == 0){
-    //      drawDots = !drawDots; //invert drawDots state
-    //      redDisplay.drawColon(drawDots);
-    //      redDisplay.writeDisplay();
-    //
-    //      delay(1000); //Need to clean this up so as not to use a delay statement.
-    //
-    //      redDisplay.print(CntDn);
-    //      redDisplay.writeDisplay();
-    //
-    //      greenDisplay.print(CntDn);;
-    //      greenDisplay.writeDisplay();
-
-    //**********
-
-    //Save the time pot value. Already in averageTimePotValue?
-    //Start countdown to display - Format min:sec with blinking colon.
-
-    }
-    //Read BPM pot. Pass value to each function below
-    currentBeatsPerMinutePotValue = bpmPot.getRollingAverage();
-
-    //For depth of compressions need to measure distances and /2 and divide by 100 for inches/compression
-    //This function to average BPM every 5 seconds
+//Start countdown to display
 
 
-    //
-    //  greenDisplay.print((int)averagebeatsPerMinuteValue);
-    //After 5 seconds, post current 5-second average to display
+//Read BPM pot. Pass value to each function below
+ currentBeatsPerMinutePotValue = bpmPot.getRollingAverage();
+
+//For depth of compressions need to measure distances and /2 and divide by 100 for inches/compression
+
+//  greenDisplay.print((int)averagebeatsPerMinuteValue);
+  //After 5 seconds, post current 5-second average to display
     //If more than 10 seconds and BPM <100, Check if audio is busy
     //If audio is busy, wait until it's not
-    //else play "go faster". Track next 10 seconds.  Need a "busy time" counter for each audio file?
-    //Can this be obtained automatically from read of card?
+      //else play "go faster". Track next 10 seconds.  Need a "busy time" counter for each audio file?
+      //Can this be obtained automatically from read of card?
     //else if BPM >100, play "good rate"
     //Add the 5-second beats to total beats
     //If more than 20 seconds and BPM <100, play "Stayin' Alive intro, then Stayin' Alive
     //If 10 seconds at right rate, lower volume of music or fade it out and set audio to not busy.
-
-    //Save number of 5 second periods for final BPM calculation
-    //Add each beat to totalBpm
-    //Calculate beats/minute
-    //Post to display
-    //What to do if person simply stops? Operator presses Stop?
-    //Or autodetect something like 2 compressions missed and advance to the next state?
-
-    //One function to check depth of compressions
-    // Save current pot value to measure depth
-    //Note: Pot value should increase at beginning
-
-
-    //Serial.println("Current bpm pot val: " + (String)currentBeatsPerMinutePotValue);
-    //Serial.println(currentBeatsPerMinutePotValue);
-    int currentDistanceValue = currentBeatsPerMinutePotValue / 25; // change to variable
-    if ((currentDistanceValue < previousDistanceValue) && !dirPlus) { //Has direction changed?  If so, going up now.
-      Serial.println("Going up");
-      startDistanceValue = currentDistanceValue; //Update start distance
-      dirPlus = !dirPlus; //Change direction flag
-    }
-
-    if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
-      directionChangeCounter ++; //Add one to count to obtain cycles.
-      Serial.println("Going down");
-      startDistanceValue = currentDistanceValue; //Update start distance
-      dirPlus = !dirPlus; //Change direction
-
-      //Store the last cycle time in an array after each beat cycle - up to NUM_BPM_SAMPLES
-      //  changeDirectionTime = millis();
-      //  beatTimes[beatTimesIndex] = changeDirectionTime;
-      beatCounter ++;
-      //  beatTimesIndex = ((beatTimesIndex + 1) % NUM_BPM_SAMPLES);
-      //Serial.println("beatTimesIndex = " + (String)beatTimesIndex);
-
-      // TODO: calculate average distance compressed. Rolling and gross
-      //Measure every compression both ways - two variables to store most recent N strokes. Reset after each evaluation
-      //Every few compressions verify good depth and good return - use modulo on beatCounter to determine when to evaluate
-      //Accumulate total depth and total beats to report average depth at the end - this is a third variable that is the sum of all the compressions both ways
-
-
-      //  for(int i = 0; i < NUM_BPM_SAMPLES; i++){
-      //      //Serial.println("Array position " + (String)i + " actual beat time value is: " + (String)beatTimes[i] + ", " );
-      //      Serial.print((String)beatTimes[i] + ", ");
-      //  }
-      //  Serial.println();
-
-    }
-
-    if (millis() >= (averageBpmStartTime + AVERAGE_BPM_SAMPLE_TIME)) {
-
-      int averageBpmCount = (beatCounter - averageBpmCounterStart);
-      averageBpm = (averageBpmCount * BPM_CONVERT);
-      greenDisplay.print(averageBpm);
-      greenDisplay.writeDisplay();
-
-      Serial.println(averageBpm);
-
-      averageBpmStartTime = millis();
-      averageBpmCounterStart = beatCounter;
-
-    }
-
-    totalDistance += abs(startDistanceValue - previousDistanceValue);
-    previousDistanceValue = currentDistanceValue;
-
-    //  Serial.println("Total Distance " + (String)totalDistance);
-    //  Serial.println("dirPlus is " + (String)dirPlus);
-    //  Serial.println("directionChangeCounter= " + (String)directionChangeCounter);
-
-
-    //Measure depth of compression  Need to scale pot value to distance.  Map function
-    //Measure depth of compression
-    //If pot value returned to starting value within a tolerance range - OK
-    //Else note shortcoming and save to trigger audio
-    //If more than 10 seconds at too shallow, play "Too Shallow" audio
-    //  else, play "good depth" audio.
-
-    //If STARTSTOP is pressed wrap it up, then advance to Feedback
-
-    //The StartStop button moves us to the next state.
-    if (CntDn + 1 == 0) { //Fix the offset of 1?  Without adding 1 here, the state changes to feedback at 1 second.
-      GoToNextState();
-    }
-
+    
+  //Save number of 5 second periods for final BPM calculation
+//What to do if person simply stops? Operator presses Stop?  
+//Or autodetect something like 2 compressions missed and advance to the next state?
   
+//One function to check depth of compressions
+// Save current pot value to measure depth
+//Note: Pot value should increase at first stroke
+
+  //Serial.println("Current bpm pot val: " + (String)currentBeatsPerMinutePotValue);
+
+int currentDistanceValue = currentBeatsPerMinutePotValue / 25; // change to variable  What if pot is zero
+if ((currentDistanceValue < previousDistanceValue) && !dirPlus) { //Has direction changed?  If so, going up now.
+  Serial.println("Going up");
+  startDistanceValue = currentDistanceValue; //Update start distance
+  dirPlus = !dirPlus; //Change direction flag
+ }
+
+if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
+   directionChangeCounter ++; //Add one to count to obtain cycles.
+   Serial.println("Going down");
+   startDistanceValue = currentDistanceValue; //Update start distance
+   dirPlus = !dirPlus; //Change direction
+   beatCounter ++;  
+  // TODO: calculate average distance compressed. Rolling and gross 
+  //Measure every compression both ways - two variables to store most recent N strokes. Reset after each evaluation
+  //Every few compressions verify good depth and good return - use modulo on beatCounter to determine when to evaluate
+  //Accumulate total depth and total beats to report average depth at the end - this is a third variable that is the sum of all the compressions both ways
+
+ }
+
+ if (millis() >= (averageBpmStartTime + AVERAGE_BPM_SAMPLE_TIME)) {
+
+  int averageBpmCount = (beatCounter - averageBpmCounterStart);
+  averageBpm = (averageBpmCount * BPM_CONVERT);
+
+  Serial.println(averageBpm);
+  greenDisplay.print(averageBpm);
+  greenDisplay.writeDisplay();
+
+  averageBpmStartTime = millis();
+  averageBpmCounterStart = beatCounter;
+
 }
+
+  totalDistance += abs(startDistanceValue - previousDistanceValue);
+  previousDistanceValue = currentDistanceValue;
+
+//  Serial.println("Total Distance " + (String)totalDistance);
+//  Serial.println("dirPlus is " + (String)dirPlus);
+//  Serial.println("directionChangeCounter= " + (String)directionChangeCounter);
+  
+
+  //Measure depth of compression  Need to scale pot value to distance.  Map function
+  //Measure depth of compression
+//If pot value returned to starting value within a tolerance range - OK
+  //Else note shortcoming and save to trigger audio
+//If more than 10 seconds at too shallow, play "Too Shallow" audio
+//  else, play "good depth" audio.
+
+//If STARTSTOP is pressed wrap it up, then advance to Feedback
+
+//The StartStop button or end of countdown moves us to the next state.  Add start/stop
+  if(startStopButton.wasPressed()) {
+  GoToNextState();
+//  if(timeCountDown + 1 == 0){ //Fix the offset of 1?  Without adding 1 here, the state changes to feedback at 1 second.
+}
+ 
+}
+ 
+
+
+
 
 void UpdateFeedback() {
   redDisplay.writeDigitNum(0, FEEDBACK);
   redDisplay.writeDisplay();
-  //Post BPM to green display
+//Post BPM to green display
+  
+
+  
+//Post average depth of compressions to green display.
+//  greenDisplay.print((int)averageDistanceValue); 
+//  greenDisplay.writeDisplay();
+  
+//Play "keep it up until help arrives" 
 
 
-
-  //Post average depth of compressions to green display.
-  //  greenDisplay.print((int)averageDistanceValue);
-  //  greenDisplay.writeDisplay();
-
-  //Play "keep it up until help arrives"
-
-
-  //The StartStop button moves us to the next state.
-  if (startStopButton.wasPressed()) {
-    GoToNextState();
-  }
+//The StartStop button moves us to the next state.
+  if(startStopButton.wasPressed()) {
+  GoToNextState();
+ }
 }
 
 void UpdateCalibration() {
-  //  redDisplay.writeDigitNum(0, CALIBRATION);
-  //  redDisplay.writeDisplay();
+  redDisplay.writeDigitNum(0, CALIBRATION);
+  redDisplay.writeDisplay();
 
-  if (startStopButton.wasPressed()) {
+  if(startStopButton.wasPressed()) {
     GoToNextState();
-  }
+ }
 }
 
 // the loop function runs over and over again forever
@@ -379,7 +360,7 @@ void loop() {
 
 
   bool error = false;
-  switch (currentState) {
+  switch(currentState) {
     case SETUP:
       UpdateSetup();
       break;
@@ -395,15 +376,25 @@ void loop() {
     default:
       error = true;
 
-      if (error) {
-        Serial.println("State " + (String)currentState + " was unrecognized");
-      }
+    if(error) {
+      Serial.println("State " + (String)currentState + " was unrecognized");
+    }
   }
 
-
+ 
 
 }
 
+//Old items repository
+  //Store the last cycle time in an array after each beat cycle - up to NUM_BPM_SAMPLES
+//  changeDirectionTime = millis();
+//  beatTimes[beatTimesIndex] = changeDirectionTime;
 
+//  beatTimesIndex = ((beatTimesIndex + 1) % NUM_BPM_SAMPLES);
+  //Serial.println("beatTimesIndex = " + (String)beatTimesIndex);
 
-
+//  for(int i = 0; i < NUM_BPM_SAMPLES; i++){
+//      //Serial.println("Array position " + (String)i + " actual beat time value is: " + (String)beatTimes[i] + ", " );
+//      Serial.print((String)beatTimes[i] + ", ");
+//  }
+//  Serial.println();
