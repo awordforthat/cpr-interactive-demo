@@ -90,7 +90,6 @@ const int MIN_NUM_HUNDREDTHS = 0;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
-
   // initialize digital pins.
   pinMode(LED_STARTSTOP, OUTPUT);
   pinMode(LED_ADULTCHILD, OUTPUT);
@@ -137,7 +136,7 @@ void GoToNextState(bool includeCalibration = false)
 
 void UpdateSetup() {
   // TODO: Change to minutes:seconds format?
-
+  
   // gets the smoothed value from the time pot, then maps it into the min-max second range
   redDisplay.print((int)map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS));
   redDisplay.writeDisplay();
@@ -170,44 +169,18 @@ void UpdatePlay() {
     redDisplay.writeDisplay();
   }
 
-  redDisplay.drawColon(drawDots);
-  redDisplay.writeDisplay();
+//  redDisplay.drawColon(drawDots);
+//  redDisplay.writeDisplay();
 
   // check to see if it's time to update the display; that is, if the difference
   // between the current time and last time you updated the display is bigger than
   // the interval at which you want to update the display.
 
-  currentMillis = millis(); //Set up counter to blink colon every half second
+  currentMillis = millis(); //Record current time (used in calculating what to display on each of the 7-segs)
 
-  if (currentMillis - previousBlink >= BLINK_INTERVAL) {
-    // If a half second has elapsed, do all these things
-    previousBlink = currentMillis;
-    redDisplay.drawColon(drawDots);
-    redDisplay.writeDisplay();
-    drawDots = !drawDots; //invert drawDots state
-  }
+  handleColonBlink(currentMillis);
 
-  if (currentMillis - previousMillis >= interval) {
-    // save the last time you updated the display
-    previousMillis = currentMillis;
-
-    //If one second has elapsed, do all these things
-    // Serial.println("Update display");
-    hours = (timeCountDown - (timeCountDown % secsPerHour)) / secsPerHour;
-    minutes = ((timeCountDown - (timeCountDown % secsPerMinute) - (hours * secsPerHour))) / secsPerMinute; // secsPerMinute;
-    seconds = ((timeCountDown % secsPerHour) % secsPerMinute);
-    if (minutes == 0) {
-      if (seconds < 10) {
-        redDisplay.writeDigitNum(3, 0);
-      }
-    }
-
-    int displayValue = (minutes * 100) + seconds; //To be pushed to the display.
-    Serial.println(displayValue);
-    redDisplay.print(displayValue);
-    redDisplay.writeDisplay();
-
-    timeCountDown--; //Decrement countdown counter
+  handleTimeUpdate(currentMillis);
 
 
     //        /*When countdown reaches zero, ship out last value: "0".
@@ -230,9 +203,7 @@ void UpdatePlay() {
 
     //Start countdown to display
 
-  }
-  //Read BPM pot. Pass value to each function below
-  currentBeatsPerMinutePotValue = bpmPot.getRollingAverage();
+  
 
   //For depth of compressions need to measure distances and /2 and divide by 100 for inches/compression
 
@@ -257,38 +228,9 @@ void UpdatePlay() {
 
   //Serial.println("Current bpm pot val: " + (String)currentBeatsPerMinutePotValue);
 
-  int currentDistanceValue = currentBeatsPerMinutePotValue / 25; // change to variable  What if pot is zero
-  if ((currentDistanceValue < previousDistanceValue) && !dirPlus) { //Has direction changed?  If so, going up now.
-    Serial.println("Going up");
-    startDistanceValue = currentDistanceValue; //Update start distance
-    dirPlus = !dirPlus; //Change direction flag
-  }
-
-  if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
-    directionChangeCounter ++; //Add one to count to obtain cycles.
-    Serial.println("Going down");
-    startDistanceValue = currentDistanceValue; //Update start distance
-    dirPlus = !dirPlus; //Change direction
-    beatCounter ++;
-    // TODO: calculate average distance compressed. Rolling and gross
-    //Measure every compression both ways - two variables to store most recent N strokes. Reset after each evaluation
-    //Every few compressions verify good depth and good return - use modulo on beatCounter to determine when to evaluate
-    //Accumulate total depth and total beats to report average depth at the end - this is a third variable that is the sum of all the compressions both ways
-
-  }
-
-  if (millis() >= (averageBpmStartTime + AVERAGE_BPM_SAMPLE_TIME)) {
-
-    int averageBpmCount = (beatCounter - averageBpmCounterStart);
-    averageBpm = (averageBpmCount * BPM_CONVERT);
-
-    greenDisplay.print(averageBpm);
-    greenDisplay.writeDisplay();
-
-    averageBpmStartTime = millis();
-    averageBpmCounterStart = beatCounter;
-
-  }
+  int currentDistanceValue = bpmPot.getRollingAverage() / 25; // change to variable  What if pot is zero
+  checkForDirectionChange(currentDistanceValue);
+  calculateAverageBPM();
 
   totalDistance += abs(startDistanceValue - previousDistanceValue);
   previousDistanceValue = currentDistanceValue;
