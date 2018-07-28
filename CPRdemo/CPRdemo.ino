@@ -38,22 +38,22 @@ Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
 Potentiometer bpmPot = Potentiometer(POT_PIN_BEATSPERMINUTE, 10);
 Potentiometer timePot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
 
-////***********
-//unsigned long previousMillis = 0;        // will store last time LED was updated
-//const long interval = 1000;           // interval at which to blink (milliseconds) Usually 1000  Why is this long variable?
-//boolean drawDots = false;  //A variable to hold whether to display dots or not
-//unsigned long startTime = 0;
-////start Time will be selected by user with a pot value.  
-//                    //For now it's being set as a fixed value.
-//unsigned long timeCountDown = startTime;
-//unsigned long currentMillis = millis();
-//int seconds; //Actual seconds
-//int minutes; //Actual minutes
-//int hours; //Actual hours
-//const int secsPerHour = 3600;
-//const int secsPerMinute = 60;
-//int dotCount = 0; //Counter for doubling dot display speed
-////************
+//***********
+unsigned long previousMillis = 0;        // will store last time LED was updated
+const long interval = 1000;           // interval at which to blink (milliseconds) Usually 1000  Why is this long variable?
+boolean drawDots = false;  //A variable to hold whether to display dots or not
+unsigned long startTime = 0;
+//start Time will be selected by user with a pot value.  
+                    //For now it's being set as a fixed value.
+unsigned long timeCountDown = startTime;
+unsigned long currentMillis = millis();
+int seconds; //Actual seconds
+int minutes; //Actual minutes
+int hours; //Actual hours
+const int secsPerHour = 3600;
+const int secsPerMinute = 60;
+int dotCount = 0; //Counter for doubling dot display speed
+//************
 
 // variables for setup state
 int currentBeatsPerMinutePotValue = 0 ;
@@ -71,13 +71,11 @@ int beatCounter = 0;
 long averageBpmStartTime = 0; 
 int averageBpmCounterStart = 0;
 
-////**********
-//unsigned long previousBlink = millis();
-//
-//const int BLINK_INTERVAL = 500; 
+//**********
+unsigned long previousBlink = millis();
 
-
-////**********
+const int BLINK_INTERVAL = 500; 
+//**********
 
 const int AVERAGE_BPM_SAMPLE_TIME = 5000;//How long between averaging and postings of averageBpm, in millis().
 const int BPM_CONVERT = (60 / (AVERAGE_BPM_SAMPLE_TIME/1000));
@@ -110,10 +108,10 @@ void setup() {
   redDisplay.clear();
   redDisplay.writeDisplay();
 
-////**********
-//  redDisplay.setBrightness (8);  //Values 0-15
-//  greenDisplay.setBrightness (15);  //Values 0-15
-////**********
+//**********
+  redDisplay.setBrightness (8);  //Values 0-15
+  greenDisplay.setBrightness (15);  //Values 0-15
+//**********
 
   Serial.begin(9600);
   
@@ -148,10 +146,10 @@ void UpdateSetup() {
 
   if(startStopButton.wasPressed()) {
     
-//    //*********
-//    timeCountDown = map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
-//    Serial.println("timeCountDown= " + (String)timeCountDown);
-//    //********    
+    //*********
+    timeCountDown = map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
+    Serial.println("timeCountDown= " + (String)timeCountDown);
+    //********    
     previousDistanceValue = analogRead(POT_PIN_BEATSPERMINUTE);
     startDistanceValue = previousDistanceValue;
     averageBpmStartTime = millis(); 
@@ -165,75 +163,74 @@ void UpdateSetup() {
 
 
 void UpdatePlay() {
-  redDisplay.writeDigitNum(0, PLAY);
-  redDisplay.writeDisplay();
 
-////***********
-//  if (seconds < 10) {
-//    redDisplay.writeDigitNum(3, 0);
-//    redDisplay.writeDisplay();
-//  }
+//***********
+  if (seconds < 10) {
+    redDisplay.writeDigitNum(3, 0);
+    redDisplay.writeDisplay();
+  }
+
+  redDisplay.drawColon(drawDots);
+  redDisplay.writeDisplay();
+  
+// check to see if it's time to update the display; that is, if the difference
+// between the current time and last time you updated the display is bigger than
+// the interval at which you want to update the display.
+
+  currentMillis = millis(); //Set up counter to blink colon every half second
+  
+  if (currentMillis - previousBlink >= BLINK_INTERVAL){
+    // If a half second has elapsed, do all these things
+    previousBlink = currentMillis;
+    redDisplay.drawColon(drawDots);
+    redDisplay.writeDisplay();
+    drawDots = !drawDots; //invert drawDots state
+   }
+    
+  if (currentMillis - previousMillis >= interval) {
+    // save the last time you updated the display
+    previousMillis = currentMillis;
+  
+    //If one second has elapsed, do all these things
+    // Serial.println("Update display");
+    hours = (timeCountDown - (timeCountDown % secsPerHour)) / secsPerHour; 
+    minutes = ((timeCountDown - (timeCountDown % secsPerMinute) - (hours * secsPerHour))) / secsPerMinute; // secsPerMinute;
+    seconds = ((timeCountDown % secsPerHour) % secsPerMinute);
+    if (minutes == 0){
+      if (seconds < 10) {
+        redDisplay.writeDigitNum(3, 0);
+      }
+    }
+
+    int displayValue = (minutes*100) + seconds; //To be pushed to the display.
+    Serial.println(displayValue);
+    redDisplay.print(displayValue);
+    redDisplay.writeDisplay();
+
+    timeCountDown--; //Decrement countdown counter
+
+
+//        /*When countdown reaches zero, ship out last value: "0".  
+//    Need to clean up so zero and colon display properly for display of 0 and 1.*/
 //
-//  redDisplay.drawColon(drawDots);
-//  redDisplay.writeDisplay();
-//  
-//// check to see if it's time to update the display; that is, if the difference
-//// between the current time and last time you updated the display is bigger than
-//// the interval at which you want to update the display.
+//    if(timeCountDown == 0){
+//      drawDots = !drawDots; //invert drawDots state 
+//      redDisplay.drawColon(drawDots);
+//      redDisplay.writeDisplay();
+//      
+//      delay(1000); //Need to clean this up so as not to use a delay statement.
 //
-//  currentMillis = millis(); //Set up counter to blink colon every half second
-//  
-//  if (currentMillis - previousBlink >= BLINK_INTERVAL){
-//    // If a half second has elapsed, do all these things
-//    previousBlink = currentMillis;
-//    redDisplay.drawColon(drawDots);
-//    redDisplay.writeDisplay();
-//    drawDots = !drawDots; //invert drawDots state
-//   }
-//    
-//  if (currentMillis - previousMillis >= interval) {
-//    // save the last time you updated the display
-//    previousMillis = currentMillis;
-//  
-//    //If one second has elapsed, do all these things
-////    Serial.println("Update display");
-//    hours = (timeCountDown - (timeCountDown % secsPerHour)) / secsPerHour; 
-//    minutes = ((timeCountDown - (timeCountDown % secsPerMinute) - (hours * secsPerHour))) / secsPerMinute; // secsPerMinute;
-//    seconds = ((timeCountDown % secsPerHour) % secsPerMinute);
-//    if (minutes == 0){
-//      if (seconds < 10) {
-//        redDisplay.writeDigitNum(3, 0);
-//      }
-//    }
-//
-//    int displayValue = (minutes*100) + seconds; //To be pushed to the display.
-//    redDisplay.print(displayValue);
-//    redDisplay.writeDisplay();
-//
-//    timeCountDown--; //Decrement countdown counter
-//
-//
-////        /*When countdown reaches zero, ship out last value: "0".  
-////    Need to clean up so zero and colon display properly for display of 0 and 1.*/
-////
-////    if(timeCountDown == 0){
-////      drawDots = !drawDots; //invert drawDots state 
-////      redDisplay.drawColon(drawDots);
-////      redDisplay.writeDisplay();
-////      
-////      delay(1000); //Need to clean this up so as not to use a delay statement.
-////
-////      redDisplay.print(timeCountDown);
-////      redDisplay.writeDisplay();
-////   
-////      greenDisplay.print(timeCountDown);;
-////      greenDisplay.writeDisplay();
-//
-////**********
+//      redDisplay.print(timeCountDown);
+//      redDisplay.writeDisplay();
+//   
+//      greenDisplay.print(timeCountDown);;
+//      greenDisplay.writeDisplay();
+
+//**********
 
 //Start countdown to display
 
-
+  }
 //Read BPM pot. Pass value to each function below
  currentBeatsPerMinutePotValue = bpmPot.getRollingAverage();
 
@@ -313,11 +310,12 @@ if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has directio
 //The StartStop button or end of countdown moves us to the next state.  Add start/stop
   if(startStopButton.wasPressed()) {
   GoToNextState();
+  }
 //  if(timeCountDown + 1 == 0){ //Fix the offset of 1?  Without adding 1 here, the state changes to feedback at 1 second.
-}
+
  
-}
- 
+
+} 
 
 
 
