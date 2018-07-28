@@ -78,7 +78,8 @@ int averageBpmCounterStart = 0;
 
 
 ////**********
-const int AVERAGE_BPM_SAMPLE_TIME = 1000;//How long between averaging and postings of averageBpm, in millis().
+
+const int AVERAGE_BPM_SAMPLE_TIME = 5000;//How long between averaging and postings of averageBpm, in millis().
 const int BPM_CONVERT = (60 / (AVERAGE_BPM_SAMPLE_TIME/1000));
 const int MAX_NUM_SECONDS = 90;
 const int MIN_NUM_SECONDS = 30;
@@ -93,15 +94,17 @@ const int MIN_NUM_HUNDREDTHS = 0;
 void setup() {
   
   // initialize digital pins.
-	pinMode(LED_STARTSTOP, OUTPUT);
-	pinMode(LED_ADULTCHILD, OUTPUT);
-	pinMode(BUTTON_STARTSTOP, INPUT_PULLUP);
-	pinMode(BUTTON_ADULTCHILD, INPUT_PULLUP);
+  pinMode(LED_STARTSTOP, OUTPUT);
+  pinMode(LED_ADULTCHILD, OUTPUT);
+  pinMode(BUTTON_STARTSTOP, INPUT_PULLUP);
+  pinMode(BUTTON_ADULTCHILD, INPUT_PULLUP);
   
   greenDisplay.begin(0x70);
   redDisplay.begin(0x71);
 
+
 	//Clear the displays and set brightness
+
   greenDisplay.clear();
   greenDisplay.writeDisplay();
   redDisplay.clear();
