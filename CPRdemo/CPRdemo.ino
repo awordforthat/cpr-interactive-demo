@@ -7,7 +7,7 @@
 #include "Button.cpp"
 #include "Potentiometer.cpp";
 #include <Wire.h>
-#include <WaveHC.h>
+//#include <WaveHC.h>
 //#include <WaveUtil.h>
 
 #define POT_PIN_TIME A0 // Input from TIME pot
@@ -31,7 +31,7 @@ enum StateID {
 };
 
 // variables common to all states
-StateID currentState = CALIBRATION;
+StateID currentState = SETUP;
 bool adultMode = true;
 Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
 Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
@@ -43,8 +43,6 @@ unsigned long previousMillis = 0;        // will store last time LED was updated
 const long interval = 1000;           // interval at which to blink (milliseconds) Usually 1000  Why is this long variable?
 boolean drawDots = false;  //A variable to hold whether to display dots or not
 unsigned long startTime = 0;
-//start Time will be selected by user with a pot value.
-//For now it's being set as a fixed value.
 unsigned long timeCountDown = startTime;
 unsigned long currentMillis = millis();
 int seconds; //Actual seconds
@@ -56,7 +54,7 @@ int dotCount = 0; //Counter for doubling dot display speed
 //************
 
 // variables for setup state
-int currentBeatsPerMinutePotValue = 0 ;
+int currentBeatsPerMinutePotValue = 0 ; //Lose this variable
 
 // variables for play state
 long totalDistance = 0; //Try to divide the source so an int can be used.
@@ -85,7 +83,7 @@ const int MIN_NUM_HUNDREDTHS = 0;
 
 //NEW
 //Variables for Calibrate state
-int maximumDepth = 0;
+int maximumDepth = 273; //Eventually get this from a read of the bpm pot.
 //new
 
 // TODO: optimize memory by changing variable types to the smallest unit that will accommodate their range of values
@@ -136,7 +134,6 @@ void GoToNextState(bool includeCalibration = true)
 }
 //End of GoToNextState function
 
-//TODO: Add reset for TIME pot value to prevent buffer overflows?
 
 void UpdateSetup() {
   // TODO: Change to minutes:seconds format?
@@ -158,11 +155,19 @@ void UpdateSetup() {
     averageBpmStartTime = millis();
 
     // read the adult/child button at the moment we exit this state and use that value to determine which mode runs in the play state
-    adultMode = digitalRead(BUTTON_ADULTCHILD);  // I don't remember whether pressed is adult or pressed is child. Invert if necessary
+    adultMode = digitalRead(BUTTON_ADULTCHILD);  // 1= Adult, 0= Child
+    if (adultMode == 1)
+    {
+      Serial.println("adultMode= ADULT");
+    }
+    else
+    {
+      Serial.println("adultMode= CHILD");
+    }
     GoToNextState();
   }
-
 }
+
 
 
 void UpdatePlay() {
@@ -228,7 +233,7 @@ void UpdatePlay() {
 
   //One function to check depth of compressions
   // Save current pot value to measure depth
-  //Note: Pot value should increase at first stroke
+  //Note: Pot value increases at first stroke
 
   //Serial.println("Current bpm pot val: " + (String)currentBeatsPerMinutePotValue);
 
@@ -253,7 +258,7 @@ void UpdatePlay() {
 
   //If STARTSTOP is pressed wrap it up, then advance to Feedback
 
-  //StartStop button or end of countdown moves us to the next state.  Add start/stop
+  //StartStop button or end of countdown moves us to the next state.
   if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
     GoToNextState();
   }
@@ -266,10 +271,12 @@ void UpdateFeedback() {
   redDisplay.writeDigitNum(0, FEEDBACK);
   redDisplay.writeDisplay();
   //Post BPM to green display
+  greenDisplay.print(averageBpm);
+  greenDisplay.writeDisplay();
 
 
 
-  //Post average depth of compressions to green display.
+
   //  greenDisplay.print((int)averageDistanceValue);
   //  greenDisplay.writeDisplay();
 
@@ -278,7 +285,6 @@ void UpdateFeedback() {
 
   //The StartStop button moves us to the next state.
   if (startStopButton.wasPressed()) {
-    Serial.println("Press and hold the chest in a full compression for 2 seconds.");
     GoToNextState();
   }
 }
@@ -287,22 +293,21 @@ void UpdateCalibration() {
   redDisplay.writeDigitNum(0, CALIBRATION);
   redDisplay.writeDisplay();
 
+
   //NEW
-Serial.println("Press chest down as far as it will go, then press Start/Run button.");
-//Send message to redDisplay
-
-
-maximumDepth = (bpmPot.getRollingAverage() + 25);
-redDisplay.print(maximumDepth);
-redDisplay.writeDisplay();  //Send max value to redDisplay
-Serial.println("new maximumDepth= " + (String)maximumDepth);
-  //new
-
-//  if (startStopButton.wasPressed()){ //NEW here maximumDepth
-    GoToNextState();
-//  }
-}
-
+  //Send some message to redDisplay? "Prss Dn"?
+//    maximumDepth = (bpmPot.getRollingAverage() + 25); //Create a value for maximumDepth a little larger than the actual pot value.
+    // Used to scale pot distance for inches with map function
+//    Serial.println("new maximumDepth= " + (String)maximumDepth);
+    //new
+//Need a way to signal the operator to press, etc.  For now, just hard code it. (273)
+//    if (startStopButton.wasPressed()) {
+//      greenDisplay.clear();
+//      greenDisplay.writeDisplay();  //NEW
+      GoToNextState();
+//    }
+  }
+  
 // the loop function runs over and over again forever
 void loop() {
 
