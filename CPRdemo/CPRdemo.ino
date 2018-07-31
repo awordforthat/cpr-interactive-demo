@@ -7,7 +7,7 @@
 #include "Button.cpp"
 #include "Potentiometer.cpp";
 #include <Wire.h>
-//#include <WaveHC.h>
+#include <WaveHC.h>
 //#include <WaveUtil.h>
 
 #define POT_PIN_TIME A0 // Input from TIME pot
@@ -31,7 +31,7 @@ enum StateID {
 };
 
 // variables common to all states
-StateID currentState = SETUP;
+StateID currentState = CALIBRATION;
 bool adultMode = true;
 Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
 Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
@@ -58,7 +58,6 @@ int dotCount = 0; //Counter for doubling dot display speed
 // variables for setup state
 int currentBeatsPerMinutePotValue = 0 ;
 
-
 // variables for play state
 long totalDistance = 0; //Try to divide the source so an int can be used.
 int directionChangeCounter = 0;
@@ -83,6 +82,11 @@ const int MAX_NUM_SECONDS = 90;
 const int MIN_NUM_SECONDS = 30;
 const int MAX_NUM_HUNDREDTHS = 200;
 const int MIN_NUM_HUNDREDTHS = 0;
+
+//NEW
+//Variables for Calibrate state
+int maximumDepth = 0;
+//new
 
 // TODO: optimize memory by changing variable types to the smallest unit that will accommodate their range of values
 // Variable size reference: https://learn.sparkfun.com/tutorials/data-types-in-arduino
@@ -121,7 +125,7 @@ void setup() {
 
 
 //This is the GoToNextState function.
-void GoToNextState(bool includeCalibration = false)
+void GoToNextState(bool includeCalibration = true)
 {
   Serial.println("Old state id: " + (String)currentState);
   int newStateId = (currentState + 1) % (includeCalibration ? 4 : 3);
@@ -136,7 +140,7 @@ void GoToNextState(bool includeCalibration = false)
 
 void UpdateSetup() {
   // TODO: Change to minutes:seconds format?
-  
+
   // gets the smoothed value from the time pot, then maps it into the min-max second range
   redDisplay.print((int)map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS));
   redDisplay.writeDisplay();
@@ -169,8 +173,8 @@ void UpdatePlay() {
     redDisplay.writeDisplay();
   }
 
-//  redDisplay.drawColon(drawDots);
-//  redDisplay.writeDisplay();
+  //  redDisplay.drawColon(drawDots);
+  //  redDisplay.writeDisplay();
 
   // check to see if it's time to update the display; that is, if the difference
   // between the current time and last time you updated the display is bigger than
@@ -183,27 +187,27 @@ void UpdatePlay() {
   handleTimeUpdate(currentMillis);
 
 
-    //        /*When countdown reaches zero, ship out last value: "0".
-    //    Need to clean up so zero and colon display properly for display of 0 and 1.*/
-    //
-    //    if(timeCountDown == 0){
-    //      drawDots = !drawDots; //invert drawDots state
-    //      redDisplay.drawColon(drawDots);
-    //      redDisplay.writeDisplay();
-    //
-    //      delay(1000); //Need to clean this up so as not to use a delay statement.
-    //
-    //      redDisplay.print(timeCountDown);
-    //      redDisplay.writeDisplay();
-    //
-    //      greenDisplay.print(timeCountDown);;
-    //      greenDisplay.writeDisplay();
+  //        /*When countdown reaches zero, ship out last value: "0".
+  //    Need to clean up so zero and colon display properly for display of 0 and 1.*/
+  //
+  //    if(timeCountDown == 0){
+  //      drawDots = !drawDots; //invert drawDots state
+  //      redDisplay.drawColon(drawDots);
+  //      redDisplay.writeDisplay();
+  //
+  //      delay(1000); //Need to clean this up so as not to use a delay statement.
+  //
+  //      redDisplay.print(timeCountDown);
+  //      redDisplay.writeDisplay();
+  //
+  //      greenDisplay.print(timeCountDown);;
+  //      greenDisplay.writeDisplay();
 
-    //**********
+  //**********
 
-    //Start countdown to display
+  //Start countdown to display
 
-  
+
 
   //For depth of compressions need to measure distances and /2 and divide by 100 for inches/compression
 
@@ -249,13 +253,10 @@ void UpdatePlay() {
 
   //If STARTSTOP is pressed wrap it up, then advance to Feedback
 
-  //The StartStop button or end of countdown moves us to the next state.  Add start/stop
+  //StartStop button or end of countdown moves us to the next state.  Add start/stop
   if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
     GoToNextState();
   }
-
-
-
 }
 
 
@@ -277,6 +278,7 @@ void UpdateFeedback() {
 
   //The StartStop button moves us to the next state.
   if (startStopButton.wasPressed()) {
+    Serial.println("Press and hold the chest in a full compression for 2 seconds.");
     GoToNextState();
   }
 }
@@ -285,9 +287,20 @@ void UpdateCalibration() {
   redDisplay.writeDigitNum(0, CALIBRATION);
   redDisplay.writeDisplay();
 
-  if (startStopButton.wasPressed()) {
+  //NEW
+Serial.println("Press chest down as far as it will go, then press Start/Run button.");
+//Send message to redDisplay
+
+
+maximumDepth = (bpmPot.getRollingAverage() + 25);
+redDisplay.print(maximumDepth);
+redDisplay.writeDisplay();  //Send max value to redDisplay
+Serial.println("new maximumDepth= " + (String)maximumDepth);
+  //new
+
+//  if (startStopButton.wasPressed()){ //NEW here maximumDepth
     GoToNextState();
-  }
+//  }
 }
 
 // the loop function runs over and over again forever
