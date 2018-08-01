@@ -33,6 +33,7 @@ enum StateID {
 // variables common to all states
 StateID currentState = SETUP;
 bool adultMode = true;
+int smoothingValue = 15;
 Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
 Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
 Potentiometer bpmPot = Potentiometer(POT_PIN_BEATSPERMINUTE, 40);
@@ -54,7 +55,7 @@ int dotCount = 0; //Counter for doubling dot display speed
 //************
 
 // variables for setup state
-int currentBeatsPerMinutePotValue = 0 ; //Lose this variable
+
 
 // variables for play state
 long totalDistance = 0; //Try to divide the source so an int can be used.
@@ -84,7 +85,7 @@ const int MIN_NUM_HUNDREDTHS = 0;
 
 //NEW
 //Variables for Calibrate state
-int maximumDepth = 1023; //Eventually get this from a read of the bpm pot.
+int maximumDepth = (270 / smoothingValue); //Eventually get this from a read of the bpm pot.
 //new
 
 // TODO: optimize memory by changing variable types to the smallest unit that will accommodate their range of values
@@ -124,7 +125,7 @@ void setup() {
 
 
 //This is the GoToNextState function.
-void GoToNextState(bool includeCalibration = true)
+void GoToNextState(bool includeCalibration = false)
 {
   Serial.println("Old state id: " + (String)currentState);
   int newStateId = (currentState + 1) % (includeCalibration ? 4 : 3);
@@ -142,15 +143,15 @@ void UpdateSetup() {
   // gets the smoothed value from the time pot, then maps it into the min-max second range
   redDisplay.print((int)map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS));
   redDisplay.writeDisplay();
-
-  //The StartStop button moves us to the next state.
+  greenDisplay.clear();
+  greenDisplay.writeDisplay();
 
   if (startStopButton.wasPressed()) {
-    //*********
+
     timeCountDown = map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
     Serial.println("timeCountDown= " + (String)timeCountDown);
-    //********
-    previousDistanceValue = bpmPot.getRollingAverage()/25;
+
+    previousDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
     Serial.println("Prev dist val: " + (String)previousDistanceValue);
     startDistanceValue = previousDistanceValue;
     averageBpmStartTime = millis();
@@ -168,28 +169,13 @@ void UpdateSetup() {
 
     GoToNextState();
   }
-
-
-
 }
 
-
-
-
 void UpdatePlay() {
-
-  //***********
   if (seconds < 10) {
     redDisplay.writeDigitNum(3, 0);
     redDisplay.writeDisplay();
   }
-
-  //  redDisplay.drawColon(drawDots);
-  //  redDisplay.writeDisplay();
-
-  // check to see if it's time to update the display; that is, if the difference
-  // between the current time and last time you updated the display is bigger than
-  // the interval at which you want to update the display.
 
   currentMillis = millis(); //Record current time (used in calculating what to display on each of the 7-segs)
 
@@ -197,82 +183,19 @@ void UpdatePlay() {
 
   handleTimeUpdate(currentMillis);
 
-
-  //        /*When countdown reaches zero, ship out last value: "0".
-  //    Need to clean up so zero and colon display properly for display of 0 and 1.*/
-  //
-  //    if(timeCountDown == 0){
-  //      drawDots = !drawDots; //invert drawDots state
-  //      redDisplay.drawColon(drawDots);
-  //      redDisplay.writeDisplay();
-  //
-  //      delay(1000); //Need to clean this up so as not to use a delay statement.
-  //
-  //      redDisplay.print(timeCountDown);
-  //      redDisplay.writeDisplay();
-  //
-  //      greenDisplay.print(timeCountDown);;
-  //      greenDisplay.writeDisplay();
-
-  //**********
-
-  //Start countdown to display
-
-
-
-  //For depth of compressions need to measure distances and /2 and divide by 100 for inches/compression
-
-  //  greenDisplay.print((int)averagebeatsPerMinuteValue);
-  //After 5 seconds, post current 5-second average to display
-  //If more than 10 seconds and BPM <100, Check if audio is busy
-  //If audio is busy, wait until it's not
-  //else play "go faster". Track next 10 seconds.  Need a "busy time" counter for each audio file?
-  //Can this be obtained automatically from read of card?
-  //else if BPM >100, play "good rate"
-  //Add the 5-second beats to total beats
-  //If more than 20 seconds and BPM <100, play "Stayin' Alive intro, then Stayin' Alive
-  //If 10 seconds at right rate, lower volume of music or fade it out and set audio to not busy.
-
-  //Save number of 5 second periods for final BPM calculation
   //What to do if person simply stops? Operator presses Stop?
   //Or autodetect something like 2 compressions missed and advance to the next state?
 
-  //One function to check depth of compressions
-  //Save current pot value to measure depth
-  //Note: Pot value increases at first stroke
-
-  //Serial.println("Current bpm pot val: " + (String)currentBeatsPerMinutePotValue);
-
-  int currentDistanceValue = bpmPot.getRollingAverage() / 25; // change to variable  What if pot is zero
+  int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue; // change to variable  What if pot is zero
   checkForDirectionChange(currentDistanceValue);
   calculateAverageBPM();
 
-  //  evaluateDistance(downDistance);
-
-  //  totalDistance += abs(startDistanceValue - previousDistanceValue);
   previousDistanceValue = currentDistanceValue;
 
-  //  Serial.println("Total Distance " + (String)totalDistance);
-  //  Serial.println("dirPlus is " + (String)dirPlus);
-  //  Serial.println("directionChangeCounter= " + (String)directionChangeCounter);
-
-
-  //Measure depth of compression  Need to scale pot value to distance.  Map function
-  //Measure depth of compression
-  //If pot value returned to starting value within a tolerance range - OK
-  //Else note shortcoming and save to trigger audio
-  //If more than 10 seconds at too shallow, play "Too Shallow" audio
-  //  else, play "good depth" audio.
-
-  //If STARTSTOP is pressed wrap it up, then advance to Feedback
-
-  //StartStop button or end of countdown moves us to the next state.
   if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
     GoToNextState();
   }
 }
-
-
 
 
 void UpdateFeedback() {
@@ -283,15 +206,9 @@ void UpdateFeedback() {
   greenDisplay.writeDisplay();
 
 
-
-
-  //  greenDisplay.print((int)averageDistanceValue);
-  //  greenDisplay.writeDisplay();
-
   //Play "keep it up until help arrives"
 
 
-  //The StartStop button moves us to the next state.
   if (startStopButton.wasPressed()) {
     GoToNextState();
   }
@@ -304,7 +221,7 @@ void UpdateCalibration() {
 
   //NEW
   //Send some message to redDisplay? "Prss Dn"?
-  //    maximumDepth = (bpmPot.getRollingAverage() + 25); //Create a value for maximumDepth a little larger than the actual pot value.
+  //    maximumDepth = (bpmPot.getRollingAverage() + smoothingValue); //Create a value for maximumDepth a little larger than the actual pot value.
   // Used to scale pot distance for inches with map function
   //    Serial.println("new maximumDepth= " + (String)maximumDepth);
   //new
@@ -312,7 +229,9 @@ void UpdateCalibration() {
   //    if (startStopButton.wasPressed()) {
   //      greenDisplay.clear();
   //      greenDisplay.writeDisplay();  //NEW
+
   GoToNextState();
+
   //    }
 }
 
@@ -346,24 +265,18 @@ void loop() {
         Serial.println("State " + (String)currentState + " was unrecognized");
       }
   }
-
-
-
 }
 
 
 
 
-//Old items repository
-//Store the last cycle time in an array after each beat cycle - up to NUM_BPM_SAMPLES
-//  changeDirectionTime = millis();
-//  beatTimes[beatTimesIndex] = changeDirectionTime;
 
-//  beatTimesIndex = ((beatTimesIndex + 1) % NUM_BPM_SAMPLES);
-//Serial.println("beatTimesIndex = " + (String)beatTimesIndex);
+/* Notes from 8/1
+  Blank green display after feedback
+  Change smoothing to variable set at 15 from 25
+  Test for adequate depth
+  Reduced pot stroke mechanically and changed max depth to match
+  Moving pot slowly causes lots of false reads
+  Removed a ton of commented-out old stuff
+*/
 
-//  for(int i = 0; i < NUM_BPM_SAMPLES; i++){
-//      //Serial.println("Array position " + (String)i + " actual beat time value is: " + (String)beatTimes[i] + ", " );
-//      Serial.print((String)beatTimes[i] + ", ");
-//  }
-//  Serial.println();

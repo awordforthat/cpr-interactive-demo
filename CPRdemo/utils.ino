@@ -25,28 +25,32 @@ void checkForDirectionChange(int currentDistanceValue) {
   int deltaDistance = abs(currentDistanceValue - previousDistanceValue);
 
   // no matter what, record that we've moved either up or down, independent of whether we've changed direction
-  if(dirPlus) {
-    
+  if (dirPlus) {
+
     upDistance += deltaDistance;
   }
-  else if(!dirPlus) {
-    
+  else if (!dirPlus) {
+
     downDistance += deltaDistance;
   }
 
   // no matter what, add to total distance traveled
   totalDistance += deltaDistance;
-  
+
 
   if ((currentDistanceValue < previousDistanceValue) && !dirPlus) { //Has direction changed?  If so, going up now.
     //    Serial.println("Going up");
     Serial.println("Down stroke length: " + (String)downDistance);
-     // check down stroke length here Long enough?
-     //Average of stroke length too shallow?  Rolling buffer Emily prefers
-    
+    if (downDistance < (maximumDepth - 2)) {
 
-    
+      // check down stroke length here. Long enough?
+      Serial.println("Press deeper"); //This will call an audio file later
+      Serial.println();
+    }
+    //Average of stroke length too shallow?  Rolling buffer Emily prefers
+
     downDistance = 0;
+
     //  if (beatCounter % 3 == 0) {
     //        averageDownDistance = downDistance / 3;
     //    if (averageDownDistance < (maximumDepth - 50)) {
@@ -61,32 +65,21 @@ void checkForDirectionChange(int currentDistanceValue) {
   if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
     directionChangeCounter ++; //Add one to count to obtain cycles.
     //Serial.println("Going down");
-      Serial.println("Up stroke length " + (String)upDistance);
-      
+    Serial.println("Up stroke length " + (String)upDistance);
+    if (upDistance < (maximumDepth - 1)) {
 
-      //check up stroke length here and print to serial monitor
-      upDistance = 0;
-      
-//    downDistance += abs(startDistanceValue - previousDistanceValue);
-//    Serial.println("downDistance: " + (String)downDistance);
-//
-//    totalDistance += downDistance;
-//    Serial.println("totalDistance: " + (String)totalDistance);
-//    Serial.println();
+      // check up stroke length here. Long enough?
+      Serial.println("Release chest fully"); //This will call an audio file later
+      Serial.println();
+    }
+    //Average of stroke length too shallow?  Rolling buffer Emily prefers
+    upDistance = 0;
 
     startDistanceValue = currentDistanceValue; //Update start distance
     dirPlus = !dirPlus; //Change direction flag
     beatCounter ++;
   }
 }
-// TODO: calculate average distance compressed. Rolling and gross
-//Measure every compression both ways - two variables to store most recent N strokes. Reset after each evaluation
-//Every few compressions verify good depth and good return - use modulo on beatCounter to determine when to evaluate
-//Accumulate total depth and total beats to report average depth at the end - this is a third variable that is the sum of all the compressions both ways
-
-
-
-
 
 
 void handleColonBlink(long currentMills) {
