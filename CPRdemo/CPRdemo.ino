@@ -70,6 +70,9 @@ long averageBpmStartTime = 0;
 int averageBpmCounterStart = 0;
 int upDistance = 0;
 int downDistance = 0;
+int strokeDistBuffer[10]; // store the most recent 10 values
+// Since beatCounter is only incremented every down stroke, we need to add a variable to track the up && down strokes
+int halfStrokeCounter = 0;
 //**********
 unsigned long previousBlink = millis();
 
@@ -85,7 +88,7 @@ const int MIN_NUM_HUNDREDTHS = 0;
 
 //NEW
 //Variables for Calibrate state
-int maximumDepth = (270 / smoothingValue); //Eventually get this from a read of the bpm pot.
+int maximumDepth = (1023 / smoothingValue); //Eventually get this from a read of the bpm pot.
 //new
 
 // TODO: optimize memory by changing variable types to the smallest unit that will accommodate their range of values

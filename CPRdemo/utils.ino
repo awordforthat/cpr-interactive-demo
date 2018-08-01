@@ -47,19 +47,36 @@ void checkForDirectionChange(int currentDistanceValue) {
       Serial.println("Press deeper"); //This will call an audio file later
       Serial.println();
     }
-    //Average of stroke length too shallow?  Rolling buffer Emily prefers
+    //Average of stroke length too shallow?  Rolling buffer Emily preferscxpec
+    // write the stroke distance into the buffer at the position we are currently at
+    strokeDistBuffer[halfStrokeCounter] = downDistance;
 
+    // use modulo here to keep the halfStrokeCounter between 0 and 10 (which is the size of the array
+
+    // fascinating
     downDistance = 0;
+    //cool!
 
-    //  if (beatCounter % 3 == 0) {
-    //        averageDownDistance = downDistance / 3;
-    //    if (averageDownDistance < (maximumDepth - 50)) {
-    //      Serial.println("Press deeper");
-    //      downDistance = 0;
-    //  }
+    // I'm arbitrarily choosing to look at beatCounter after the down stroke. We can move it later if you want
+
+    //** choose a number of beats you want to let go by before you check the distance buffer. store that in a variable
+
+    //** if the beatCounter % that variable == 0, perform your check
+
+    //** Your check should be: loop over the strokeDistBuffer using a for loop. in this case, you will need to increment the counter by 2, not one.
+    //** e.g. for(int i = 0; i < 10; i += 2)
+
+    //** sum those values
+
+    //** divide by *half* the number of elements in the array (because we only are interested in one direction, the up or the down
+
+    //** that is your rolling average for that stroke direction. Print it out to the serial monitor
+
 
     startDistanceValue = currentDistanceValue; //Update start distance
     dirPlus = !dirPlus; //Change direction flag
+    halfStrokeCounter++;
+    halfStrokeCounter = halfStrokeCounter % 10; // 10 should be variable...later
   }
 
   if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
@@ -72,14 +89,22 @@ void checkForDirectionChange(int currentDistanceValue) {
       Serial.println("Release chest fully"); //This will call an audio file later
       Serial.println();
     }
+    strokeDistBuffer[halfStrokeCounter] = upDistance;
+
     //Average of stroke length too shallow?  Rolling buffer Emily prefers
     upDistance = 0;
 
     startDistanceValue = currentDistanceValue; //Update start distance
     dirPlus = !dirPlus; //Change direction flag
     beatCounter ++;
+    halfStrokeCounter++;
+    halfStrokeCounter = halfStrokeCounter % 10;
   }
+
+  // cool. bit of an off-by-one error since I think we register a stroke when we enter the state even if the pot isn't moving. Not worried about that yet
+
 }
+
 
 
 void handleColonBlink(long currentMills) {
@@ -115,3 +140,10 @@ void handleTimeUpdate(long currentMillis) {
     timeCountDown--; //Decrement countdown counter
   }
 }
+
+//  if (beatCounter % 3 == 0) {
+//        averageDownDistance = downDistance / 3;
+//    if (averageDownDistance < (maximumDepth - 50)) {
+//      Serial.println("Press deeper");
+//      downDistance = 0;
+//  }
