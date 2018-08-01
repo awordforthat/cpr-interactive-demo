@@ -18,39 +18,61 @@ void calculateAverageBPM() {
 
 
 int averageDownDistance = 0;
+bool firstTimeThrough = true;
 
 void checkForDirectionChange(int currentDistanceValue) {
+  // get the incremental distance that the pot has traveled this loop()
+  int deltaDistance = abs(currentDistanceValue - previousDistanceValue);
+
+  // no matter what, record that we've moved either up or down, independent of whether we've changed direction
+  if(dirPlus) {
+    
+    upDistance += deltaDistance;
+  }
+  else if(!dirPlus) {
+    
+    downDistance += deltaDistance;
+  }
+
+  // no matter what, add to total distance traveled
+  totalDistance += deltaDistance;
+  
 
   if ((currentDistanceValue < previousDistanceValue) && !dirPlus) { //Has direction changed?  If so, going up now.
     //    Serial.println("Going up");
+    Serial.println("Down stroke length: " + (String)downDistance);
+     // check down stroke length here Long enough?
+     //Average of stroke length too shallow?  Rolling buffer Emily prefers
+    
 
-    upDistance += abs(startDistanceValue - previousDistanceValue);
-    Serial.println("upDistance: " + (String)upDistance);
-
-    totalDistance += upDistance;
-    Serial.println("totalDistance: " + (String)totalDistance);
-    Serial.println();
-
-    startDistanceValue = currentDistanceValue; //Update start distance
-    dirPlus = !dirPlus; //Change direction flag
+    
+    downDistance = 0;
     //  if (beatCounter % 3 == 0) {
     //        averageDownDistance = downDistance / 3;
     //    if (averageDownDistance < (maximumDepth - 50)) {
     //      Serial.println("Press deeper");
     //      downDistance = 0;
     //  }
+
+    startDistanceValue = currentDistanceValue; //Update start distance
+    dirPlus = !dirPlus; //Change direction flag
   }
 
   if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
     directionChangeCounter ++; //Add one to count to obtain cycles.
-    Serial.println("Going down");
+    //Serial.println("Going down");
+      Serial.println("Up stroke length " + (String)upDistance);
+      
 
-    downDistance += abs(startDistanceValue - previousDistanceValue);
-    Serial.println("downDistance: " + (String)downDistance);
-
-    totalDistance += downDistance;
-    Serial.println("totalDistance: " + (String)totalDistance);
-    Serial.println();
+      //check up stroke length here and print to serial monitor
+      upDistance = 0;
+      
+//    downDistance += abs(startDistanceValue - previousDistanceValue);
+//    Serial.println("downDistance: " + (String)downDistance);
+//
+//    totalDistance += downDistance;
+//    Serial.println("totalDistance: " + (String)totalDistance);
+//    Serial.println();
 
     startDistanceValue = currentDistanceValue; //Update start distance
     dirPlus = !dirPlus; //Change direction flag

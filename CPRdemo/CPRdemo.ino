@@ -150,7 +150,8 @@ void UpdateSetup() {
     timeCountDown = map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
     Serial.println("timeCountDown= " + (String)timeCountDown);
     //********
-    previousDistanceValue = analogRead(POT_PIN_BEATSPERMINUTE);
+    previousDistanceValue = bpmPot.getRollingAverage()/25;
+    Serial.println("Prev dist val: " + (String)previousDistanceValue);
     startDistanceValue = previousDistanceValue;
     averageBpmStartTime = millis();
 
