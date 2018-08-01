@@ -146,7 +146,6 @@ void UpdateSetup() {
   //The StartStop button moves us to the next state.
 
   if (startStopButton.wasPressed()) {
-
     //*********
     timeCountDown = map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
     Serial.println("timeCountDown= " + (String)timeCountDown);
@@ -154,7 +153,6 @@ void UpdateSetup() {
     previousDistanceValue = analogRead(POT_PIN_BEATSPERMINUTE);
     startDistanceValue = previousDistanceValue;
     averageBpmStartTime = millis();
-}
 
     // read the adult/child button at the moment we exit this state and use that value to determine which mode runs in the play state
     adultMode = digitalRead(BUTTON_ADULTCHILD);  // 1= Adult, 0= Child
@@ -166,8 +164,13 @@ void UpdateSetup() {
     {
       Serial.println("adultMode= CHILD");
     }
+
     GoToNextState();
   }
+
+
+
+}
 
 
 
@@ -242,11 +245,11 @@ void UpdatePlay() {
   int currentDistanceValue = bpmPot.getRollingAverage() / 25; // change to variable  What if pot is zero
   checkForDirectionChange(currentDistanceValue);
   calculateAverageBPM();
- 
-//  evaluateDistance(downDistance);
 
-//  totalDistance += abs(startDistanceValue - previousDistanceValue);
- previousDistanceValue = currentDistanceValue;
+  //  evaluateDistance(downDistance);
+
+  //  totalDistance += abs(startDistanceValue - previousDistanceValue);
+  previousDistanceValue = currentDistanceValue;
 
   //  Serial.println("Total Distance " + (String)totalDistance);
   //  Serial.println("dirPlus is " + (String)dirPlus);
@@ -321,7 +324,6 @@ void loop() {
   timePot.updatePot();
   bpmPot.updatePot();
 
-
   bool error = false;
   switch (currentState) {
     case SETUP:
@@ -347,6 +349,9 @@ void loop() {
 
 
 }
+
+
+
 
 //Old items repository
 //Store the last cycle time in an array after each beat cycle - up to NUM_BPM_SAMPLES

@@ -8,7 +8,7 @@ void calculateAverageBPM() {
 
     greenDisplay.print(averageBpm);
     greenDisplay.writeDisplay();
-    Serial.println(averageBpm);
+    //Serial.println(averageBpm);
 
     averageBpmStartTime = millis();
     averageBpmCounterStart = beatCounter;
@@ -17,12 +17,12 @@ void calculateAverageBPM() {
 }
 
 
-int averageDownDistance=0;
+int averageDownDistance = 0;
 
 void checkForDirectionChange(int currentDistanceValue) {
 
   if ((currentDistanceValue < previousDistanceValue) && !dirPlus) { //Has direction changed?  If so, going up now.
-//    Serial.println("Going up");
+    //    Serial.println("Going up");
 
     upDistance += abs(startDistanceValue - previousDistanceValue);
     Serial.println("upDistance: " + (String)upDistance);
@@ -33,13 +33,13 @@ void checkForDirectionChange(int currentDistanceValue) {
 
     startDistanceValue = currentDistanceValue; //Update start distance
     dirPlus = !dirPlus; //Change direction flag
-//  if (beatCounter % 3 == 0) {
-//        averageDownDistance = downDistance / 3;
-//    if (averageDownDistance < (maximumDepth - 50)) {
-//      Serial.println("Press deeper");
-//      downDistance = 0;
-//  }
-}
+    //  if (beatCounter % 3 == 0) {
+    //        averageDownDistance = downDistance / 3;
+    //    if (averageDownDistance < (maximumDepth - 50)) {
+    //      Serial.println("Press deeper");
+    //      downDistance = 0;
+    //  }
+  }
 
   if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
     directionChangeCounter ++; //Add one to count to obtain cycles.
@@ -64,7 +64,7 @@ void checkForDirectionChange(int currentDistanceValue) {
 
 
 
-  
+
 
 
 void handleColonBlink(long currentMills) {
@@ -100,4 +100,3 @@ void handleTimeUpdate(long currentMillis) {
     timeCountDown--; //Decrement countdown counter
   }
 }
-
