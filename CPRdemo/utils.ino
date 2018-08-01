@@ -16,27 +16,56 @@ void calculateAverageBPM() {
   }
 }
 
+
+int averageDownDistance=0;
+
 void checkForDirectionChange(int currentDistanceValue) {
 
   if ((currentDistanceValue < previousDistanceValue) && !dirPlus) { //Has direction changed?  If so, going up now.
-    Serial.println("Going up");
+//    Serial.println("Going up");
+
+    upDistance += abs(startDistanceValue - previousDistanceValue);
+    Serial.println("upDistance: " + (String)upDistance);
+
+    totalDistance += upDistance;
+    Serial.println("totalDistance: " + (String)totalDistance);
+    Serial.println();
+
     startDistanceValue = currentDistanceValue; //Update start distance
     dirPlus = !dirPlus; //Change direction flag
-  }
+//  if (beatCounter % 3 == 0) {
+//        averageDownDistance = downDistance / 3;
+//    if (averageDownDistance < (maximumDepth - 50)) {
+//      Serial.println("Press deeper");
+//      downDistance = 0;
+//  }
+}
 
   if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
     directionChangeCounter ++; //Add one to count to obtain cycles.
     Serial.println("Going down");
-    startDistanceValue = currentDistanceValue; //Update start distance
-    dirPlus = !dirPlus; //Change direction
-    beatCounter ++;
-    // TODO: calculate average distance compressed. Rolling and gross
-    //Measure every compression both ways - two variables to store most recent N strokes. Reset after each evaluation
-    //Every few compressions verify good depth and good return - use modulo on beatCounter to determine when to evaluate
-    //Accumulate total depth and total beats to report average depth at the end - this is a third variable that is the sum of all the compressions both ways
 
+    downDistance += abs(startDistanceValue - previousDistanceValue);
+    Serial.println("downDistance: " + (String)downDistance);
+
+    totalDistance += downDistance;
+    Serial.println("totalDistance: " + (String)totalDistance);
+    Serial.println();
+
+    startDistanceValue = currentDistanceValue; //Update start distance
+    dirPlus = !dirPlus; //Change direction flag
+    beatCounter ++;
   }
 }
+// TODO: calculate average distance compressed. Rolling and gross
+//Measure every compression both ways - two variables to store most recent N strokes. Reset after each evaluation
+//Every few compressions verify good depth and good return - use modulo on beatCounter to determine when to evaluate
+//Accumulate total depth and total beats to report average depth at the end - this is a third variable that is the sum of all the compressions both ways
+
+
+
+  
+
 
 void handleColonBlink(long currentMills) {
   if (currentMillis - previousBlink >= BLINK_INTERVAL) {

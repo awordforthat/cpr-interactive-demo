@@ -67,7 +67,8 @@ int averageBpm = 0;
 int beatCounter = 0;
 long averageBpmStartTime = 0;
 int averageBpmCounterStart = 0;
-
+int upDistance = 0;
+int downDistance = 0;
 //**********
 unsigned long previousBlink = millis();
 
@@ -77,13 +78,13 @@ const int BLINK_INTERVAL = 500;
 const int AVERAGE_BPM_SAMPLE_TIME = 5000;//How long between averaging and postings of averageBpm, in millis().
 const int BPM_CONVERT = (60 / (AVERAGE_BPM_SAMPLE_TIME / 1000));
 const int MAX_NUM_SECONDS = 90;
-const int MIN_NUM_SECONDS = 30;
+const int MIN_NUM_SECONDS = 10;
 const int MAX_NUM_HUNDREDTHS = 200;
 const int MIN_NUM_HUNDREDTHS = 0;
 
 //NEW
 //Variables for Calibrate state
-int maximumDepth = 273; //Eventually get this from a read of the bpm pot.
+int maximumDepth = 1023; //Eventually get this from a read of the bpm pot.
 //new
 
 // TODO: optimize memory by changing variable types to the smallest unit that will accommodate their range of values
@@ -153,6 +154,7 @@ void UpdateSetup() {
     previousDistanceValue = analogRead(POT_PIN_BEATSPERMINUTE);
     startDistanceValue = previousDistanceValue;
     averageBpmStartTime = millis();
+}
 
     // read the adult/child button at the moment we exit this state and use that value to determine which mode runs in the play state
     adultMode = digitalRead(BUTTON_ADULTCHILD);  // 1= Adult, 0= Child
@@ -166,7 +168,7 @@ void UpdateSetup() {
     }
     GoToNextState();
   }
-}
+
 
 
 
@@ -232,7 +234,7 @@ void UpdatePlay() {
   //Or autodetect something like 2 compressions missed and advance to the next state?
 
   //One function to check depth of compressions
-  // Save current pot value to measure depth
+  //Save current pot value to measure depth
   //Note: Pot value increases at first stroke
 
   //Serial.println("Current bpm pot val: " + (String)currentBeatsPerMinutePotValue);
@@ -240,9 +242,11 @@ void UpdatePlay() {
   int currentDistanceValue = bpmPot.getRollingAverage() / 25; // change to variable  What if pot is zero
   checkForDirectionChange(currentDistanceValue);
   calculateAverageBPM();
+ 
+//  evaluateDistance(downDistance);
 
-  totalDistance += abs(startDistanceValue - previousDistanceValue);
-  previousDistanceValue = currentDistanceValue;
+//  totalDistance += abs(startDistanceValue - previousDistanceValue);
+ previousDistanceValue = currentDistanceValue;
 
   //  Serial.println("Total Distance " + (String)totalDistance);
   //  Serial.println("dirPlus is " + (String)dirPlus);
@@ -296,18 +300,18 @@ void UpdateCalibration() {
 
   //NEW
   //Send some message to redDisplay? "Prss Dn"?
-//    maximumDepth = (bpmPot.getRollingAverage() + 25); //Create a value for maximumDepth a little larger than the actual pot value.
-    // Used to scale pot distance for inches with map function
-//    Serial.println("new maximumDepth= " + (String)maximumDepth);
-    //new
-//Need a way to signal the operator to press, etc.  For now, just hard code it. (273)
-//    if (startStopButton.wasPressed()) {
-//      greenDisplay.clear();
-//      greenDisplay.writeDisplay();  //NEW
-      GoToNextState();
-//    }
-  }
-  
+  //    maximumDepth = (bpmPot.getRollingAverage() + 25); //Create a value for maximumDepth a little larger than the actual pot value.
+  // Used to scale pot distance for inches with map function
+  //    Serial.println("new maximumDepth= " + (String)maximumDepth);
+  //new
+  //Need a way to signal the operator to press, etc.  For now, just hard code it. (273)
+  //    if (startStopButton.wasPressed()) {
+  //      greenDisplay.clear();
+  //      greenDisplay.writeDisplay();  //NEW
+  GoToNextState();
+  //    }
+}
+
 // the loop function runs over and over again forever
 void loop() {
 
