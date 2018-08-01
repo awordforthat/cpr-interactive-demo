@@ -17,7 +17,7 @@
 #define NUM_SAMPLES 10
 #define LED_STARTSTOP 8 // Set pin 8 for Start/Stop button LED
 #define LED_ADULTCHILD 12 //Set pin 12 for Adult/Child button LED
-#define NUM_BPM_SAMPLES 20
+#define NUM_BPM_SAMPLES 40
 
 Adafruit_7segment redDisplay = Adafruit_7segment();
 Adafruit_7segment greenDisplay = Adafruit_7segment();
@@ -35,7 +35,7 @@ StateID currentState = SETUP;
 bool adultMode = true;
 Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
 Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
-Potentiometer bpmPot = Potentiometer(POT_PIN_BEATSPERMINUTE, 10);
+Potentiometer bpmPot = Potentiometer(POT_PIN_BEATSPERMINUTE, 40);
 Potentiometer timePot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
 
 //***********
