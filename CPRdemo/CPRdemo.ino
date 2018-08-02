@@ -281,5 +281,6 @@ void loop() {
   Reduced pot stroke mechanically and changed max depth to match
   Moving pot slowly causes lots of false reads
   Removed a ton of commented-out old stuff
+  Em added distance counter code
 */
 
