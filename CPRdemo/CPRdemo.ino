@@ -70,9 +70,9 @@ long averageBpmStartTime = 0;
 int averageBpmCounterStart = 0;
 int upDistance = 0;
 int downDistance = 0;
-int strokeDistBuffer[10]; // store the most recent 10 values
-// Since beatCounter is only incremented every down stroke, we need to add a variable to track the up && down strokes
-int halfStrokeCounter = 0;
+boolean previousDownWasShort = false;
+int shortUpStrokeCounter = 0;
+int distanceCounterBeats = 5;
 //**********
 unsigned long previousBlink = millis();
 
@@ -207,7 +207,7 @@ void UpdateFeedback() {
   //Post BPM to green display
   greenDisplay.print(averageBpm);
   greenDisplay.writeDisplay();
-
+  beatCounter = 0;
 
   //Play "keep it up until help arrives"
 
@@ -284,3 +284,7 @@ void loop() {
   Em added distance counter code
 */
 
+/* Notes from 8/2
+  Added halfStrokeSamples variable
+  Reset beatCounter to 0 at end of feedback state
+*/
