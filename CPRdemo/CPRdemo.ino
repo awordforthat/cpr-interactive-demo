@@ -42,7 +42,7 @@ Potentiometer timePot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
 //***********
 unsigned long previousMillis = 0;        // will store last time LED was updated
 const long interval = 1000;           // interval at which to blink (milliseconds) Usually 1000  Why is this long variable?
-boolean drawDots = false;  //A variable to hold whether to display dots or not
+boolean drawDots = true;  //A variable to hold whether to display dots or not
 unsigned long startTime = 0;
 unsigned long timeCountDown = startTime;
 unsigned long currentMillis = millis();
@@ -73,6 +73,9 @@ int downDistance = 0;
 boolean previousDownWasShort = false;
 int shortUpStrokeCounter = 0;
 int distanceCounterBeats = 5;
+int overallAverageBpm = 0;
+int overallBpm = 0;
+int overallBpmCount = 0;
 //**********
 unsigned long previousBlink = millis();
 
@@ -81,14 +84,14 @@ const int BLINK_INTERVAL = 500;
 
 const int AVERAGE_BPM_SAMPLE_TIME = 5000;//How long between averaging and postings of averageBpm, in millis().
 const int BPM_CONVERT = (60 / (AVERAGE_BPM_SAMPLE_TIME / 1000));
-const int MAX_NUM_SECONDS = 90;
-const int MIN_NUM_SECONDS = 10;
+const int MAX_NUM_SECONDS = 300;
+const int MIN_NUM_SECONDS = 30;
 const int MAX_NUM_HUNDREDTHS = 200;
 const int MIN_NUM_HUNDREDTHS = 0;
 
 //NEW
 //Variables for Calibrate state
-int maximumDepth = (1023 / smoothingValue); //Eventually get this from a read of the bpm pot.
+int maximumDepth = (350 / smoothingValue); //Eventually get this from a read of the bpm pot.
 //new
 
 // TODO: optimize memory by changing variable types to the smallest unit that will accommodate their range of values
@@ -113,9 +116,10 @@ void setup() {
   greenDisplay.writeDisplay();
   redDisplay.clear();
   redDisplay.writeDisplay();
-
+  redDisplay.drawColon(true);  //Why is this blnking like mad?
+  redDisplay.writeDisplay();
   //**********
-  redDisplay.setBrightness (8);  //Values 0-15
+  redDisplay.setBrightness (9);  //Values 0-15
   greenDisplay.setBrightness (15);  //Values 0-15
   //**********
 
@@ -141,17 +145,17 @@ void GoToNextState(bool includeCalibration = false)
 
 
 void UpdateSetup() {
-  // TODO: Change to minutes:seconds format?
-
   // gets the smoothed value from the time pot, then maps it into the min-max second range
-  redDisplay.print((int)map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS));
-  redDisplay.writeDisplay();
-  greenDisplay.clear();
-  greenDisplay.writeDisplay();
+
+  timeCountDown = ((int)map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS));
+  handleStartTimeConvert();
 
   if (startStopButton.wasPressed()) {
 
-    timeCountDown = map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
+    drawDots = false;
+    greenDisplay.clear();
+    greenDisplay.writeDisplay();
+    //    timeCountDown = startTime; //map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
     Serial.println("timeCountDown= " + (String)timeCountDown);
 
     previousDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
@@ -182,9 +186,10 @@ void UpdatePlay() {
 
   currentMillis = millis(); //Record current time (used in calculating what to display on each of the 7-segs)
 
+  handleTimeUpdate(currentMillis);
   handleColonBlink(currentMillis);
 
-  handleTimeUpdate(currentMillis);
+
 
   //What to do if person simply stops? Operator presses Stop?
   //Or autodetect something like 2 compressions missed and advance to the next state?
@@ -197,6 +202,7 @@ void UpdatePlay() {
 
   if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
     GoToNextState();
+
   }
 }
 
@@ -205,7 +211,7 @@ void UpdateFeedback() {
   redDisplay.writeDigitNum(0, FEEDBACK);
   redDisplay.writeDisplay();
   //Post BPM to green display
-  greenDisplay.print(averageBpm);
+  greenDisplay.print(overallBpm / overallBpmCount);
   greenDisplay.writeDisplay();
   beatCounter = 0;
 
@@ -246,7 +252,7 @@ void loop() {
   startStopButton.updateButton();
   timePot.updatePot();
   bpmPot.updatePot();
-
+  //delay(10);
   bool error = false;
   switch (currentState) {
     case SETUP:

@@ -5,7 +5,8 @@ void calculateAverageBPM() {
 
     int averageBpmCount = (beatCounter - averageBpmCounterStart);
     averageBpm = (averageBpmCount * BPM_CONVERT);
-
+    overallBpm += averageBpm;
+    overallBpmCount += 1;
     greenDisplay.print(averageBpm);
     greenDisplay.writeDisplay();
     //Serial.println(averageBpm);
@@ -43,9 +44,9 @@ void checkForDirectionChange(int currentDistanceValue) {
 
 
   if ((currentDistanceValue < previousDistanceValue) && !dirPlus) { //Has direction changed?  If so, going up now.
-    //Serial.println("Going up");
+    Serial.println("Going up");
 
-    if (downDistance < (maximumDepth - 2)) {
+    if (downDistance < (maximumDepth - 1)) {
       if (!(downDistance == 1)) {
         previousDownWasShort = true;
         //        Serial.println("Down was short"); //This will call an audio file later
@@ -68,7 +69,7 @@ void checkForDirectionChange(int currentDistanceValue) {
     if (beatCounter % distanceCounterBeats == 0) {
       // how many too-shallow releases were there?
       Serial.println("Short strokes: " + (String)shortUpStrokeCounter);
-      
+
     }
 
     startDistanceValue = currentDistanceValue; //Update start distance
@@ -78,7 +79,7 @@ void checkForDirectionChange(int currentDistanceValue) {
 
   if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
     directionChangeCounter ++; //Add one to count to obtain cycles.
-    //Serial.println("Going down");
+    Serial.println("Going down");
     //Serial.println("Up stroke length " + (String)upDistance);
     if (upDistance < (maximumDepth - 1)) {
       if (upDistance != 1) {
@@ -151,6 +152,25 @@ void handleTimeUpdate(long currentMillis) {
 
     timeCountDown--; //Decrement countdown counter
   }
+}
+
+void handleStartTimeConvert() {
+  hours = (timeCountDown - (timeCountDown % secsPerHour)) / secsPerHour;
+  minutes = ((timeCountDown - (timeCountDown % secsPerMinute) - (hours * secsPerHour))) / secsPerMinute; // secsPerMinute;
+  seconds = ((timeCountDown % secsPerHour) % secsPerMinute);
+
+  if (minutes == 0) {
+    if (seconds < 10) {
+      redDisplay.writeDigitNum(3, 0);
+    }
+  }
+
+  int displayValue = (minutes * 100) + seconds; //To be pushed to the display.
+
+  
+  redDisplay.print(displayValue);
+  redDisplay.drawColon(true); // must go after print to display
+  redDisplay.writeDisplay();
 }
 
 //  if (beatCounter % 3 == 0) {
