@@ -165,6 +165,8 @@ void UpdateSetup() {
     averageBpmStartTime = millis();
     overallBpmStartTime = millis();
 
+    averageBpmCounterStart = 0;
+
     // read the adult/child button at the moment we exit this state and use that value to determine which mode runs in the play state
     adultMode = digitalRead(BUTTON_ADULTCHILD);  // 1= Adult, 0= Child
     if (adultMode == 1)
