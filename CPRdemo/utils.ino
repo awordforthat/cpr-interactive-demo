@@ -5,14 +5,28 @@ void calculateAverageBPM() {
 
     int averageBpmCount = (beatCounter - averageBpmCounterStart);
     averageBpm = (averageBpmCount * BPM_CONVERT);
-    overallBpm += averageBpm;
-    overallBpmCount += 1;
+
     greenDisplay.print(averageBpm);
+    greenDisplay.writeDigitRaw (2, chrDot3); //Top left dot
     greenDisplay.writeDisplay();
-    //Serial.println(averageBpm);
 
     averageBpmStartTime = millis();
     averageBpmCounterStart = beatCounter;
+
+  }
+}
+void calculateOverallBPM() {
+
+  if (millis() >= (overallBpmStartTime + OVERALL_BPM_SAMPLE_TIME)) {
+
+    //Add the number of beats this second to the number of beats counter (overallBpmCount)
+    overallBpmCount += (beatCounter - overallBpmCounterStart);
+
+    //Add the number of seconds to the seconds counter (overallSeconds)
+    overallSeconds += 1;
+    
+    overallBpmStartTime = millis();
+    overallBpmCounterStart = beatCounter;
   }
 }
 
@@ -44,7 +58,7 @@ void checkForDirectionChange(int currentDistanceValue) {
 
 
   if ((currentDistanceValue < previousDistanceValue) && !dirPlus) { //Has direction changed?  If so, going up now.
-    Serial.println("Going up");
+    //    Serial.println("Going up");
 
     if (downDistance < (maximumDepth - 1)) {
       if (!(downDistance == 1)) {
@@ -79,7 +93,7 @@ void checkForDirectionChange(int currentDistanceValue) {
 
   if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
     directionChangeCounter ++; //Add one to count to obtain cycles.
-    Serial.println("Going down");
+    //    Serial.println("Going down");
     //Serial.println("Up stroke length " + (String)upDistance);
     if (upDistance < (maximumDepth - 1)) {
       if (upDistance != 1) {
@@ -167,7 +181,7 @@ void handleStartTimeConvert() {
 
   int displayValue = (minutes * 100) + seconds; //To be pushed to the display.
 
-  
+
   redDisplay.print(displayValue);
   redDisplay.drawColon(true); // must go after print to display
   redDisplay.writeDisplay();
