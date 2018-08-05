@@ -32,6 +32,7 @@ enum StateID {
 
 // variables common to all states
 StateID currentState = SETUP;
+bool includeCalibration = false;
 bool adultMode = true;
 int smoothingValue = 15;
 Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
@@ -39,7 +40,7 @@ Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
 Potentiometer bpmPot = Potentiometer(POT_PIN_BEATSPERMINUTE, 40);
 Potentiometer timePot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
 
-//***********
+
 unsigned long previousMillis = 0;        // will store last time LED was updated
 const long interval = 1000;           // interval at which to blink (milliseconds) Usually 1000  Why is this long variable?
 boolean drawDots = true;  //A variable to hold whether to display dots or not
@@ -52,7 +53,8 @@ int hours; //Actual hours
 const int secsPerHour = 3600;
 const int secsPerMinute = 60;
 int dotCount = 0; //Counter for doubling dot display speed
-//************
+const byte chrDot3   = 0b00000100;  // Dot 3 Top, left.  Must be output to character position 2
+const byte chrDot4   = 0b00001000;  // Dot 4 Bottom, left.  Must be output to character position 2
 
 // variables for setup state
 
@@ -68,30 +70,32 @@ int averageBpm = 0;
 int beatCounter = 0;
 long averageBpmStartTime = 0;
 int averageBpmCounterStart = 0;
+long overallBpmStartTime = 0;
+int overallBpmCounterStart = 0;
+int overallSeconds = 0;
 int upDistance = 0;
 int downDistance = 0;
 boolean previousDownWasShort = false;
 int shortUpStrokeCounter = 0;
 int distanceCounterBeats = 5;
-int overallAverageBpm = 0;
-int overallBpm = 0;
 int overallBpmCount = 0;
-//**********
+
 unsigned long previousBlink = millis();
 
 const int BLINK_INTERVAL = 500;
-//**********
+
 
 const int AVERAGE_BPM_SAMPLE_TIME = 5000;//How long between averaging and postings of averageBpm, in millis().
 const int BPM_CONVERT = (60 / (AVERAGE_BPM_SAMPLE_TIME / 1000));
+const int OVERALL_BPM_SAMPLE_TIME = 1000;
 const int MAX_NUM_SECONDS = 300;
-const int MIN_NUM_SECONDS = 30;
+const int MIN_NUM_SECONDS = 10;
 const int MAX_NUM_HUNDREDTHS = 200;
 const int MIN_NUM_HUNDREDTHS = 0;
 
 //NEW
 //Variables for Calibrate state
-int maximumDepth = (350 / smoothingValue); //Eventually get this from a read of the bpm pot.
+int maximumDepth = (350 / smoothingValue); //Eventually get this from a read of the bpm pot in the calibrate state.
 //new
 
 // TODO: optimize memory by changing variable types to the smallest unit that will accommodate their range of values
@@ -118,21 +122,20 @@ void setup() {
   redDisplay.writeDisplay();
   redDisplay.drawColon(true);  //Why is this blnking like mad?
   redDisplay.writeDisplay();
-  //**********
+
   redDisplay.setBrightness (9);  //Values 0-15
   greenDisplay.setBrightness (15);  //Values 0-15
-  //**********
 
   Serial.begin(9600);
 
   timePot.init();
   bpmPot.init();
-  int bpmValue = analogRead(POT_PIN_BEATSPERMINUTE);//Unused
+
 } //End setup
 
 
 //This is the GoToNextState function.
-void GoToNextState(bool includeCalibration = false)
+void GoToNextState()
 {
   Serial.println("Old state id: " + (String)currentState);
   int newStateId = (currentState + 1) % (includeCalibration ? 4 : 3);
@@ -155,13 +158,12 @@ void UpdateSetup() {
     drawDots = false;
     greenDisplay.clear();
     greenDisplay.writeDisplay();
-    //    timeCountDown = startTime; //map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS);
-    Serial.println("timeCountDown= " + (String)timeCountDown);
 
     previousDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
-    Serial.println("Prev dist val: " + (String)previousDistanceValue);
+
     startDistanceValue = previousDistanceValue;
     averageBpmStartTime = millis();
+    overallBpmStartTime = millis();
 
     // read the adult/child button at the moment we exit this state and use that value to determine which mode runs in the play state
     adultMode = digitalRead(BUTTON_ADULTCHILD);  // 1= Adult, 0= Child
@@ -197,10 +199,11 @@ void UpdatePlay() {
   int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue; // change to variable  What if pot is zero
   checkForDirectionChange(currentDistanceValue);
   calculateAverageBPM();
-
+  calculateOverallBPM();
   previousDistanceValue = currentDistanceValue;
 
   if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
+
     GoToNextState();
 
   }
@@ -209,22 +212,27 @@ void UpdatePlay() {
 
 void UpdateFeedback() {
   redDisplay.writeDigitNum(0, FEEDBACK);
-  redDisplay.writeDisplay();
+  //  redDisplay.writeDisplay();
+
   //Post BPM to green display
-  greenDisplay.print(overallBpm / overallBpmCount);
+  greenDisplay.print((overallBpmCount * secsPerMinute) / overallSeconds);
+  greenDisplay.writeDigitRaw (2, chrDot4); //Bottom left dot
   greenDisplay.writeDisplay();
   beatCounter = 0;
 
+
   //Play "keep it up until help arrives"
 
-
   if (startStopButton.wasPressed()) {
+    greenDisplay.clear();
+    greenDisplay.writeDisplay();
     GoToNextState();
   }
 }
 
 void UpdateCalibration() {
   redDisplay.writeDigitNum(0, CALIBRATION);
+  redDisplay.writeDigitRaw(2, chrDot3);
   redDisplay.writeDisplay();
 
 
@@ -239,7 +247,9 @@ void UpdateCalibration() {
   //      greenDisplay.clear();
   //      greenDisplay.writeDisplay();  //NEW
 
-  GoToNextState();
+  if (startStopButton.wasPressed()) {
+    GoToNextState();
+  }
 
   //    }
 }
@@ -252,7 +262,8 @@ void loop() {
   startStopButton.updateButton();
   timePot.updatePot();
   bpmPot.updatePot();
-  //delay(10);
+
+
   bool error = false;
   switch (currentState) {
     case SETUP:
@@ -294,3 +305,11 @@ void loop() {
   Added halfStrokeSamples variable
   Reset beatCounter to 0 at end of feedback state
 */
+
+/* Notes from 8/4
+  Moved includeCalibration into global variables area so we can do some sort of button sequence to read to
+  change the variable from false to true so we can get into calibration state without a computer connected.
+  Added average BPM for the entire test time
+*/
+
+
