@@ -1,5 +1,4 @@
 
-
 void calculateAverageBPM() {
   if (millis() >= (averageBpmStartTime + AVERAGE_BPM_SAMPLE_TIME)) {
 

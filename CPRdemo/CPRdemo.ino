@@ -6,6 +6,7 @@
 #include "Adafruit_LEDBackpack.h"
 #include "Button.cpp"
 #include "Potentiometer.cpp";
+#include <RS485_non_blocking.h>
 #include <Wire.h>
 //#include <WaveHC.h>
 //#include <WaveUtil.h>
@@ -30,6 +31,11 @@ enum StateID {
   CALIBRATION
 };
 
+size_t fWrite(const byte what) {
+  return Serial.write(what);
+}
+
+
 // variables common to all states
 StateID currentState = SETUP;
 bool includeCalibration = false;
@@ -39,7 +45,7 @@ Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
 Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
 Potentiometer bpmPot = Potentiometer(POT_PIN_BEATSPERMINUTE, 40);
 Potentiometer timePot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
-
+RS485 commChannel(NULL, NULL, fWrite, 0);
 
 unsigned long previousMillis = 0;        // will store last time LED was updated
 const long interval = 1000;           // interval at which to blink (milliseconds) Usually 1000  Why is this long variable?
@@ -127,6 +133,8 @@ void setup() {
   greenDisplay.setBrightness (15);  //Values 0-15
 
   Serial.begin(9600);
+
+  commChannel.begin();
 
   timePot.init();
   bpmPot.init();
@@ -256,6 +264,8 @@ void UpdateCalibration() {
   //    }
 }
 
+
+
 // the loop function runs over and over again forever
 void loop() {
 
@@ -264,6 +274,9 @@ void loop() {
   startStopButton.updateButton();
   timePot.updatePot();
   bpmPot.updatePot();
+
+  const byte msg [] = "Hello world";
+  commChannel.sendMsg(msg, sizeof(msg));
 
 
   bool error = false;
