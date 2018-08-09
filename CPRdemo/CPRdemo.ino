@@ -89,6 +89,11 @@ int overallBpmCount = 0;
 unsigned long previousBlink = millis();
 
 const int BLINK_INTERVAL = 500;
+const byte ONE [] = "ONE";
+const byte TWO [] = "TWO";
+const byte THREE [] = "THREE";
+const byte FOUR [] = "FOUR";
+
 
 
 const int AVERAGE_BPM_SAMPLE_TIME = 5000;//How long between averaging and postings of averageBpm, in millis().
@@ -186,6 +191,8 @@ void UpdateSetup() {
       Serial.println("adultMode= CHILD");
     }
 
+    commChannel.sendMsg(ONE, sizeof(ONE));
+
     GoToNextState();
   }
 }
@@ -213,7 +220,7 @@ void UpdatePlay() {
   previousDistanceValue = currentDistanceValue;
 
   if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
-
+     commChannel.sendMsg(TWO, sizeof(TWO));
     GoToNextState();
 
   }
@@ -234,6 +241,7 @@ void UpdateFeedback() {
   //Play "keep it up until help arrives"
 
   if (startStopButton.wasPressed()) {
+     commChannel.sendMsg(THREE, sizeof(THREE));
     greenDisplay.clear();
     greenDisplay.writeDisplay();
     GoToNextState();
@@ -258,6 +266,8 @@ void UpdateCalibration() {
   //      greenDisplay.writeDisplay();  //NEW
 
   if (startStopButton.wasPressed()) {
+
+    commChannel.sendMsg(THREE, sizeof(THREE));
     GoToNextState();
   }
 
@@ -274,9 +284,6 @@ void loop() {
   startStopButton.updateButton();
   timePot.updatePot();
   bpmPot.updatePot();
-
-  const byte msg [] = "Hello world";
-  commChannel.sendMsg(msg, sizeof(msg));
 
 
   bool error = false;
