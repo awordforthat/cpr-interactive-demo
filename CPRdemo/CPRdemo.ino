@@ -91,6 +91,7 @@ const int BLINK_INTERVAL = 500;
 const byte ONE [] = "ONE";
 const byte TWO [] = "TWO";
 const byte THREE [] = "THREE";
+const byte FOUR [] = "FOUR";
 const byte FIVE [] = "FIVE";
 const byte SIX [] = "SIX";
 const byte SEVEN [] = "SEVEN";
@@ -103,8 +104,8 @@ const int BPM_CONVERT = (60 / (AVERAGE_BPM_SAMPLE_TIME / 1000));
 const int OVERALL_BPM_SAMPLE_TIME = 1000;
 const int MAX_NUM_SECONDS = 182;
 const int MIN_NUM_SECONDS = 30;
-const int MAX_NUM_HUNDREDTHS = 200;
-const int MIN_NUM_HUNDREDTHS = 0;
+const int MAX_NUM_HUNDREDTHS = 200; //Unused
+const int MIN_NUM_HUNDREDTHS = 0; //Unused
 
 //NEW
 //Variables for Calibrate state
@@ -218,9 +219,16 @@ void UpdatePlay() {
   calculateAverageBPM();
   calculateOverallBPM();
   previousDistanceValue = currentDistanceValue;
+  if (averageBpm < 95) {
+    commChannel.sendMsg(THREE, sizeof(THREE));
+  }
+
+  if (averageBpm > 100) {
+    commChannel.sendMsg(NINE, sizeof(NINE));
+  }
 
   if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
-     commChannel.sendMsg(TWO, sizeof(TWO));
+    commChannel.sendMsg(FOUR, sizeof(FOUR));
     GoToNextState();
 
   }
@@ -231,17 +239,15 @@ void UpdateFeedback() {
   redDisplay.writeDigitNum(0, FEEDBACK);
   //  redDisplay.writeDisplay();
 
-  //Post BPM to green display
+  //Post BPM to green display May have to install LEDS for this now that displays are set back.
   greenDisplay.print((overallBpmCount * secsPerMinute) / overallSeconds);
   greenDisplay.writeDigitRaw (2, chrDot4); //Bottom left dot
   greenDisplay.writeDisplay();
   beatCounter = 0;
 
 
-  //Play "keep it up until help arrives"
-
   if (startStopButton.wasPressed()) {
-     commChannel.sendMsg(THREE, sizeof(THREE));
+    commChannel.sendMsg(THREE, sizeof(THREE));
     greenDisplay.clear();
     greenDisplay.writeDisplay();
     GoToNextState();
@@ -267,7 +273,7 @@ void UpdateCalibration() {
 
   if (startStopButton.wasPressed()) {
 
-    commChannel.sendMsg(THREE, sizeof(THREE));
+    commChannel.sendMsg(TWO, sizeof(TWO));
     GoToNextState();
   }
 

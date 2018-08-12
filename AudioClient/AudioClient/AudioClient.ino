@@ -99,7 +99,7 @@ void loop ()
       playcomplete("RTSpdA.wav");
     }
          if(msg == TEN) {
-      playcomplete("RTSpdA.wav");
+      playcomplete("StynAlvA.wav");
     }
     Serial.write (commChannel.getData (), commChannel.getLength ());
     Serial.println ();
