@@ -14,20 +14,7 @@ void calculateAverageBPM() {
 
   }
 }
-void calculateOverallBPM() {
 
-  if (millis() >= (overallBpmStartTime + OVERALL_BPM_SAMPLE_TIME)) {
-
-    //Add the number of beats this second to the number of beats counter (overallBpmCount)
-    overallBpmCount += (beatCounter - overallBpmCounterStart);
-
-    //Add the number of seconds to the seconds counter (overallSeconds)
-    overallSeconds += 1;
-    
-    overallBpmStartTime = millis();
-    overallBpmCounterStart = beatCounter;
-  }
-}
 
 int averageDownDistance = 0;
 bool firstTimeThrough = true;
@@ -81,7 +68,7 @@ void checkForDirectionChange(int currentDistanceValue) {
 
     if (beatCounter % distanceCounterBeats == 0) {
       // how many too-shallow releases were there?
-      Serial.println("Short strokes: " + (String)shortUpStrokeCounter);
+      //Serial.println("Short strokes: " + (String)shortUpStrokeCounter);
 
     }
 

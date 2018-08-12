@@ -101,11 +101,10 @@ const byte TEN [] = "TEN";
 
 const int AVERAGE_BPM_SAMPLE_TIME = 5000;//How long between averaging and postings of averageBpm, in millis().
 const int BPM_CONVERT = (60 / (AVERAGE_BPM_SAMPLE_TIME / 1000));
-const int OVERALL_BPM_SAMPLE_TIME = 1000;
 const int MAX_NUM_SECONDS = 182;
-const int MIN_NUM_SECONDS = 30;
-const int MAX_NUM_HUNDREDTHS = 200; //Unused
-const int MIN_NUM_HUNDREDTHS = 0; //Unused
+const int MIN_NUM_SECONDS = 15;
+//const int MAX_NUM_HUNDREDTHS = 200; //Unused
+//const int MIN_NUM_HUNDREDTHS = 0; //Unused
 
 //NEW
 //Variables for Calibrate state
@@ -178,8 +177,8 @@ void UpdateSetup() {
     startDistanceValue = previousDistanceValue;
     averageBpmStartTime = millis();
     overallBpmStartTime = millis();
-
     averageBpmCounterStart = 0;
+    overallBpmCounterStart = beatCounter;
 
     // read the adult/child button at the moment we exit this state and use that value to determine which mode runs in the play state
     adultMode = digitalRead(BUTTON_ADULTCHILD);  // 1= Adult, 0= Child
@@ -192,7 +191,7 @@ void UpdateSetup() {
       Serial.println("adultMode= CHILD");
     }
 
-    commChannel.sendMsg(ONE, sizeof(ONE));
+   commChannel.sendMsg(EIGHT, sizeof(EIGHT));
 
     GoToNextState();
   }
@@ -217,18 +216,19 @@ void UpdatePlay() {
   int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue; // change to variable  What if pot is zero
   checkForDirectionChange(currentDistanceValue);
   calculateAverageBPM();
-  calculateOverallBPM();
-  previousDistanceValue = currentDistanceValue;
-  if (averageBpm < 95) {
-    commChannel.sendMsg(THREE, sizeof(THREE));
-  }
 
-  if (averageBpm > 100) {
-    commChannel.sendMsg(NINE, sizeof(NINE));
-  }
+  previousDistanceValue = currentDistanceValue;
+//    if (averageBpm < 95) {
+//      commChannel.sendMsg(THREE, sizeof(THREE));
+//    }
+//    if (averageBpm > 100) {
+//      commChannel.sendMsg(NINE, sizeof(NINE));
+//    }
 
   if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
     commChannel.sendMsg(FOUR, sizeof(FOUR));
+    overallBpmCount = beatCounter - overallBpmCounterStart;
+    overallSeconds = (millis() - overallBpmStartTime) / 1000;
     GoToNextState();
 
   }
@@ -239,7 +239,9 @@ void UpdateFeedback() {
   redDisplay.writeDigitNum(0, FEEDBACK);
   //  redDisplay.writeDisplay();
 
-  //Post BPM to green display May have to install LEDS for this now that displays are set back.
+  //Post BPM to green display. May have to install LEDS for this now that displays are set back.
+
+
   greenDisplay.print((overallBpmCount * secsPerMinute) / overallSeconds);
   greenDisplay.writeDigitRaw (2, chrDot4); //Bottom left dot
   greenDisplay.writeDisplay();
@@ -340,4 +342,7 @@ void loop() {
   Added average BPM for the entire test time
 */
 
-
+/* Notes from 8/12
+    Fixed overall BPM calcs
+    Removed overall BPM function
+*/

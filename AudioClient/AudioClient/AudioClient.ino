@@ -19,8 +19,7 @@ const byte SIX [] = "SIX";
 const byte SEVEN [] = "SEVEN";
 const byte EIGHT [] = "EIGHT";
 const byte NINE [] = "NINE";
-const byte TEN [] = "TEN";
-const int FILE_COUNT = 9; //Will be 10 once Stayin' Alive is ripped.
+const int FILE_COUNT = 8; //Will be 9 once Stayin' Alive is ripped.
 /*
    Define macro to put error messages in flash memory
 */
@@ -96,11 +95,9 @@ void loop ()
       playcomplete("TiredA.wav");
     }
          if(msg == NINE) {
-      playcomplete("RTSpdA.wav");
+      playcomplete("StynAlv.wav");
     }
-         if(msg == TEN) {
-      playcomplete("StynAlvA.wav");
-    }
+
     Serial.write (commChannel.getData (), commChannel.getLength ());
     Serial.println ();
   }
