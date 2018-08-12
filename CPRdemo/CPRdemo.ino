@@ -17,7 +17,8 @@
 #define NUM_SAMPLES 10
 #define LED_STARTSTOP 8 // Set pin 8 for Start/Stop button LED
 #define LED_ADULTCHILD 12 //Set pin 12 for Adult/Child button LED
-#define NUM_BPM_SAMPLES 40
+#define LED_AVERAGEBPM 9 // Set pin 8 for Start/Stop button LED
+#define LED_OVERALLBPM 10 //Set pin 12 for Adult/Child button LED#define NUM_BPM_SAMPLES 40
 
 Adafruit_7segment redDisplay = Adafruit_7segment();
 Adafruit_7segment greenDisplay = Adafruit_7segment();
@@ -119,6 +120,8 @@ void setup() {
   // initialize digital pins.
   pinMode(LED_STARTSTOP, OUTPUT);
   pinMode(LED_ADULTCHILD, OUTPUT);
+  pinMode(LED_AVERAGEBPM, OUTPUT);
+  pinMode(LED_OVERALLBPM, OUTPUT);
   pinMode(BUTTON_STARTSTOP, INPUT_PULLUP);
   pinMode(BUTTON_ADULTCHILD, INPUT_PULLUP);
 
@@ -191,7 +194,7 @@ void UpdateSetup() {
       Serial.println("adultMode= CHILD");
     }
 
-   commChannel.sendMsg(EIGHT, sizeof(EIGHT));
+    commChannel.sendMsg(EIGHT, sizeof(EIGHT));
 
     GoToNextState();
   }
@@ -218,17 +221,24 @@ void UpdatePlay() {
   calculateAverageBPM();
 
   previousDistanceValue = currentDistanceValue;
-//    if (averageBpm < 95) {
-//      commChannel.sendMsg(THREE, sizeof(THREE));
-//    }
-//    if (averageBpm > 100) {
-//      commChannel.sendMsg(NINE, sizeof(NINE));
-//    }
+  //    if (averageBpm < 95) {
+  //      commChannel.sendMsg(THREE, sizeof(THREE));
+  //    }
+  //    if (averageBpm > 100) {
+  //      commChannel.sendMsg(NINE, sizeof(NINE));
+  //    }
 
   if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
     commChannel.sendMsg(FOUR, sizeof(FOUR));
     overallBpmCount = beatCounter - overallBpmCounterStart;
     overallSeconds = (millis() - overallBpmStartTime) / 1000;
+    digitalWrite(LED_AVERAGEBPM, LOW);
+
+    digitalWrite(LED_OVERALLBPM, HIGH);
+
+    greenDisplay.print((overallBpmCount * secsPerMinute) / overallSeconds);
+    greenDisplay.writeDigitRaw (2, chrDot4); //Bottom left dot
+    greenDisplay.writeDisplay();
     GoToNextState();
 
   }
@@ -236,15 +246,9 @@ void UpdatePlay() {
 
 
 void UpdateFeedback() {
-  redDisplay.writeDigitNum(0, FEEDBACK);
+  //  redDisplay.writeDigitNum(0, FEEDBACK);
   //  redDisplay.writeDisplay();
 
-  //Post BPM to green display. May have to install LEDS for this now that displays are set back.
-
-
-  greenDisplay.print((overallBpmCount * secsPerMinute) / overallSeconds);
-  greenDisplay.writeDigitRaw (2, chrDot4); //Bottom left dot
-  greenDisplay.writeDisplay();
   beatCounter = 0;
 
 
@@ -252,6 +256,7 @@ void UpdateFeedback() {
     commChannel.sendMsg(THREE, sizeof(THREE));
     greenDisplay.clear();
     greenDisplay.writeDisplay();
+    digitalWrite(LED_OVERALLBPM, LOW);
     GoToNextState();
   }
 }
@@ -345,4 +350,5 @@ void loop() {
 /* Notes from 8/12
     Fixed overall BPM calcs
     Removed overall BPM function
+    Added code for adding average and overall BPM LEDs.  Ready for hardware.
 */

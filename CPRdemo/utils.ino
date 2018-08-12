@@ -8,7 +8,7 @@ void calculateAverageBPM() {
     greenDisplay.print(averageBpm);
     greenDisplay.writeDigitRaw (2, chrDot3); //Top left dot
     greenDisplay.writeDisplay();
-
+    digitalWrite(LED_AVERAGEBPM, HIGH);
     averageBpmStartTime = millis();
     averageBpmCounterStart = beatCounter;
 
