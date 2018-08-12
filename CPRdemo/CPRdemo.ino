@@ -8,8 +8,7 @@
 #include "Potentiometer.cpp";
 #include <RS485_non_blocking.h>
 #include <Wire.h>
-//#include <WaveHC.h>
-//#include <WaveUtil.h>
+
 
 #define POT_PIN_TIME A0 // Input from TIME pot
 #define POT_PIN_BEATSPERMINUTE A1 // Input from BEATSPERMINUTE pot
@@ -92,15 +91,18 @@ const int BLINK_INTERVAL = 500;
 const byte ONE [] = "ONE";
 const byte TWO [] = "TWO";
 const byte THREE [] = "THREE";
-const byte FOUR [] = "FOUR";
-
-
+const byte FIVE [] = "FIVE";
+const byte SIX [] = "SIX";
+const byte SEVEN [] = "SEVEN";
+const byte EIGHT [] = "EIGHT";
+const byte NINE [] = "NINE";
+const byte TEN [] = "TEN";
 
 const int AVERAGE_BPM_SAMPLE_TIME = 5000;//How long between averaging and postings of averageBpm, in millis().
 const int BPM_CONVERT = (60 / (AVERAGE_BPM_SAMPLE_TIME / 1000));
 const int OVERALL_BPM_SAMPLE_TIME = 1000;
-const int MAX_NUM_SECONDS = 300;
-const int MIN_NUM_SECONDS = 10;
+const int MAX_NUM_SECONDS = 182;
+const int MIN_NUM_SECONDS = 30;
 const int MAX_NUM_HUNDREDTHS = 200;
 const int MIN_NUM_HUNDREDTHS = 0;
 
@@ -109,8 +111,7 @@ const int MIN_NUM_HUNDREDTHS = 0;
 int maximumDepth = (350 / smoothingValue); //Eventually get this from a read of the bpm pot in the calibrate state.
 //new
 
-// TODO: optimize memory by changing variable types to the smallest unit that will accommodate their range of values
-// Variable size reference: https://learn.sparkfun.com/tutorials/data-types-in-arduino
+
 
 
 // the setup function runs once when you press reset or power the board
@@ -126,7 +127,6 @@ void setup() {
 
 
   //Clear the displays and set brightness
-
   greenDisplay.clear();
   greenDisplay.writeDisplay();
   redDisplay.clear();
@@ -134,7 +134,7 @@ void setup() {
   redDisplay.drawColon(true);  //Why is this blnking like mad?
   redDisplay.writeDisplay();
 
-  redDisplay.setBrightness (9);  //Values 0-15
+  redDisplay.setBrightness (15);  //Values 0-15
   greenDisplay.setBrightness (15);  //Values 0-15
 
   Serial.begin(9600);

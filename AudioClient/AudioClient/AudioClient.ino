@@ -1,3 +1,5 @@
+
+
 #include <RS485_non_blocking.h>
 #include <WaveHC.h>
 #include <WaveUtil.h>
@@ -12,7 +14,13 @@ const byte ONE [] = "ONE";
 const byte TWO [] = "TWO";
 const byte THREE [] = "THREE";
 const byte FOUR [] = "FOUR";
-const int FILE_COUNT = 8;
+const byte FIVE [] = "FIVE";
+const byte SIX [] = "SIX";
+const byte SEVEN [] = "SEVEN";
+const byte EIGHT [] = "EIGHT";
+const byte NINE [] = "NINE";
+const byte TEN [] = "TEN";
+const int FILE_COUNT = 9; //Will be 10 once Stayin' Alive is ripped.
 /*
    Define macro to put error messages in flash memory
 */
@@ -64,7 +72,34 @@ void loop ()
     String msg = commChannel.getData();
     
     if(msg == ONE) {
-      playcomplete("LtlFstrA.wav");
+      playcomplete("GoodCmpA.wav");
+    }
+     if(msg == TWO) {
+      playcomplete("GotThsA.wav");
+    }
+     if(msg == THREE) {
+      playcomplete("LtlFstr.wav");
+    }
+     if(msg == FOUR) {
+      playcomplete("MedHelpA.wav");
+    }
+         if(msg == FIVE) {
+      playcomplete("MuscPcA.wav");
+    }
+         if(msg == SIX) {
+      playcomplete("PshHrdrA.wav");
+    }
+         if(msg == SEVEN) {
+      playcomplete("RTSpdA.wav");
+    }
+         if(msg == EIGHT) {
+      playcomplete("TiredA.wav");
+    }
+         if(msg == NINE) {
+      playcomplete("RTSpdA.wav");
+    }
+         if(msg == TEN) {
+      playcomplete("RTSpdA.wav");
     }
     Serial.write (commChannel.getData (), commChannel.getLength ());
     Serial.println ();
