@@ -69,36 +69,36 @@ void loop ()
 
   {
     String msg = commChannel.getData();
-    
-    if(msg == GOOD_COMP) {
+
+    if (msg == GOOD_COMP) {
       playcomplete("GoodCmpA.wav"); // good comp (but not good pace??)
     }
-     if(msg == RIGHT_SPEED) {
+    if (msg == RIGHT_SPEED) {
       playcomplete("RTSpdA.wav");  // good pace (but shallow?)
     }
-     if(msg == GOT_THIS) {
+    if (msg == GOT_THIS) {
       playcomplete("GotThsA.wav"); // good comp && good pace
     }
-     if(msg == LITTLE_FASTER) {
-      playcomplete("LtlFstrA.wav");  // too slow 
+    if (msg == LITTLE_FASTER) {
+      playcomplete("LtlFstrA.wav");  // too slow
     }
-         if(msg == INTRO_AND_MUSIC) {
+    if (msg == INTRO_AND_MUSIC) {
       playcomplete("MuscPcA.wav");  // too slow (maybe 2nd time)
-      //playcomplete("StynAlvA.wav");
+      playcomplete("StynAlvB.wav");
     }
-         if(msg == PUSH_HARDER) {
+    if (msg == PUSH_HARDER) {
       playcomplete("PshHrdrA.wav");  // too shallow
     }
-         if(msg == MED_HELP) {
+    if (msg == MED_HELP) {
       playcomplete("MedHelpA.wav"); // ending (feedback)
     }
-         if(msg == TIRED) {
+    if (msg == TIRED) {
       playcomplete("TiredA.wav"); // 75% through duration of play
     }
-         if(msg == MUSIC_ONLY) {
-          playcomplete("StynAlvA.wav"); // music only, no intro
+    if (msg == MUSIC_ONLY) {
+      playcomplete("StynAlvA.wav"); // music only, no intro
     }
-    
+
 
     Serial.write (commChannel.getData (), commChannel.getLength ());
     Serial.println ();
@@ -135,7 +135,7 @@ void playcomplete(char *name) {
   // call our helper to find and play this name
   playfile(name);
   while (wave.isplaying) {
-  // do nothing while its playing
+    // do nothing while its playing
   }
   // now its done playing
 }
@@ -153,7 +153,7 @@ void playfile(char *name) {
   if (!wave.create(file)) {
     putstring_nl("Not a valid WAV"); return;
   }
-  
+
   // ok time to play! start playback
   wave.play();
 }
