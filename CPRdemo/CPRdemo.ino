@@ -57,7 +57,6 @@ const long interval = 1000;           // interval at which to blink (millisecond
 boolean drawDots = true;  //A variable to hold whether to display dots or not
 unsigned long startTime = 0;
 unsigned long timeCountDown = startTime;
-unsigned long currentMillis = millis();
 int seconds; //Actual seconds
 int minutes; //Actual minutes
 int hours; //Actual hours
@@ -220,27 +219,23 @@ void UpdatePlay() {
     redDisplay.writeDisplay();
   }
 
-  currentMillis = millis(); //Record current time (used in calculating what to display on each of the 7-segs)
+  long currentMillis = millis(); //Record current time (used in calculating what to display on each of the 7-segs)
 
   handleTimeUpdate(currentMillis);
   handleColonBlink(currentMillis);
 
-
-
-  //What to do if person simply stops? Operator presses Stop?
-  //Or autodetect something like 2 compressions missed and advance to the next state?
-
-  int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue; // change to variable  What if pot is zero
+  int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue; 
   checkForDirectionChange(currentDistanceValue);
-  calculateAverageBPM();
+  if (millis() >= (averageBpmStartTime + AVERAGE_BPM_SAMPLE_TIME)) {
 
+    calculateAverageBPM();
+
+    // reset for next round
+    averageBpmStartTime = millis();
+
+  } 
   previousDistanceValue = currentDistanceValue;
-  //    if (averageBpm < 95) {
-  //      commChannel.sendMsg(THREE, sizeof(THREE));
-  //    }
-  //    if (averageBpm > 100) {
-  //      commChannel.sendMsg(NINE, sizeof(NINE));
-  //    }
+
 
   if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
     overallBpmCount = beatCounter - overallBpmCounterStart;
