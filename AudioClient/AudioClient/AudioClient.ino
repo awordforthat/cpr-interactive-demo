@@ -10,16 +10,16 @@ FatReader root;   // This holds the information for the volumes root directory
 FatReader file;   // This object represent the WAV file
 WaveHC wave;      // This is the only wave (audio) object, since we will only play one at a time
 
-const byte ONE [] = "ONE";
-const byte TWO [] = "TWO";
-const byte THREE [] = "THREE";
-const byte FOUR [] = "FOUR";
-const byte FIVE [] = "FIVE";
-const byte SIX [] = "SIX";
-const byte SEVEN [] = "SEVEN";
-const byte EIGHT [] = "EIGHT";
-const byte NINE [] = "NINE";
-const int FILE_COUNT = 8; //Will be 9 once Stayin' Alive is ripped.
+
+const byte GOOD_COMP [] = "ONE";
+const byte RIGHT_SPEED [] = "TWO";
+const byte GOT_THIS [] = "THREE";
+const byte LITTLE_FASTER [] = "FOUR";
+const byte INTRO_AND_MUSIC [] = "FIVE";
+const byte PUSH_HARDER [] = "SIX";
+const byte MED_HELP [] = "SEVEN";
+const byte TIRED [] = "EIGHT";
+const byte MUSIC_ONLY [] = "NINE";
 /*
    Define macro to put error messages in flash memory
 */
@@ -70,33 +70,35 @@ void loop ()
   {
     String msg = commChannel.getData();
     
-    if(msg == ONE) {
-      playcomplete("GoodCmpA.wav");
+    if(msg == GOOD_COMP) {
+      playcomplete("GoodCmpA.wav"); // good comp (but not good pace??)
     }
-     if(msg == TWO) {
-      playcomplete("GotThsA.wav");
+     if(msg == RIGHT_SPEED) {
+      playcomplete("RTSpdA.wav");  // good pace (but shallow?)
     }
-     if(msg == THREE) {
-      playcomplete("LtlFstr.wav");
+     if(msg == GOT_THIS) {
+      playcomplete("GotThsA.wav"); // good comp && good pace
     }
-     if(msg == FOUR) {
-      playcomplete("MedHelpA.wav");
+     if(msg == LITTLE_FASTER) {
+      playcomplete("LtlFstrA.wav");  // too slow 
     }
-         if(msg == FIVE) {
-      playcomplete("MuscPcA.wav");
+         if(msg == INTRO_AND_MUSIC) {
+      playcomplete("MuscPcA.wav");  // too slow (maybe 2nd time)
+      //playcomplete("StynAlvA.wav");
     }
-         if(msg == SIX) {
-      playcomplete("PshHrdrA.wav");
+         if(msg == PUSH_HARDER) {
+      playcomplete("PshHrdrA.wav");  // too shallow
     }
-         if(msg == SEVEN) {
-      playcomplete("RTSpdA.wav");
+         if(msg == MED_HELP) {
+      playcomplete("MedHelpA.wav"); // ending (feedback)
     }
-         if(msg == EIGHT) {
-      playcomplete("TiredA.wav");
+         if(msg == TIRED) {
+      playcomplete("TiredA.wav"); // 75% through duration of play
     }
-         if(msg == NINE) {
-      playcomplete("StynAlv.wav");
+         if(msg == MUSIC_ONLY) {
+          playcomplete("StynAlvA.wav"); // music only, no intro
     }
+    
 
     Serial.write (commChannel.getData (), commChannel.getLength ());
     Serial.println ();

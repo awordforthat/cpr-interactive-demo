@@ -1,14 +1,58 @@
 
+int lowIdealBpm = 100;
+
 void calculateAverageBPM() {
   if (millis() >= (averageBpmStartTime + AVERAGE_BPM_SAMPLE_TIME)) {
 
     int averageBpmCount = (beatCounter - averageBpmCounterStart);
     averageBpm = (averageBpmCount * BPM_CONVERT);
 
+    if (audioFeedbackMode == CHECK_FOR_PACE)
+    {
+      // check if we need to play audio
+      if (!haveAchievedGoodPace)
+      {
+        if (averageBpm < lowIdealBpm ) {
+          if (numLittleFasterPrompts < 2) {
+            // if we haven't sent "little faster" very much, play that
+            commChannel.sendMsg(LITTLE_FASTER, sizeof(LITTLE_FASTER));
+            numLittleFasterPrompts++;
+            
+          }
+          else {
+            // if  they're really having trouble, play music
+            if (!havePlayedMusic) {
+              commChannel.sendMsg(INTRO_AND_MUSIC, sizeof(INTRO_AND_MUSIC));
+              havePlayedMusic = true;
+              haveAchievedGoodPace = true; // force this to be true, even if it's not, just for learning purposes
+            }
+          }
+
+        }
+        else {
+          haveAchievedGoodPace = true;
+
+        }
+      }
+      else {
+        commChannel.sendMsg(RIGHT_SPEED, sizeof(RIGHT_SPEED));
+        audioFeedbackMode = CHECK_FOR_DEPTH;
+
+      }
+    }
+    else {
+      commChannel.sendMsg(GOOD_COMP, sizeof(GOOD_COMP));
+    }
+
+
+
+    // print to screen
     greenDisplay.print(averageBpm);
     greenDisplay.writeDigitRaw (2, chrDot3); //Top left dot
     greenDisplay.writeDisplay();
     digitalWrite(LED_AVERAGEBPM, HIGH);
+
+    // reset for next round
     averageBpmStartTime = millis();
     averageBpmCounterStart = beatCounter;
 

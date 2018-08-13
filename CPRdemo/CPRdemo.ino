@@ -31,6 +31,11 @@ enum StateID {
   CALIBRATION
 };
 
+enum AudioFeedbackMode {
+  CHECK_FOR_PACE,
+  CHECK_FOR_DEPTH
+};
+
 size_t fWrite(const byte what) {
   return Serial.write(what);
 }
@@ -85,20 +90,24 @@ boolean previousDownWasShort = false;
 int shortUpStrokeCounter = 0;
 int distanceCounterBeats = 5;
 int overallBpmCount = 0;
+int audioFeedbackMode = CHECK_FOR_PACE;
+bool haveAchievedGoodPace = false; // guilty until proven innocent
+bool haveAchievedGoodDepth = false;
+bool havePlayedMusic = false;
+int numLittleFasterPrompts = 0;
 
 unsigned long previousBlink = millis();
 
 const int BLINK_INTERVAL = 500;
-const byte ONE [] = "ONE";
-const byte TWO [] = "TWO";
-const byte THREE [] = "THREE";
-const byte FOUR [] = "FOUR";
-const byte FIVE [] = "FIVE";
-const byte SIX [] = "SIX";
-const byte SEVEN [] = "SEVEN";
-const byte EIGHT [] = "EIGHT";
-const byte NINE [] = "NINE";
-const byte TEN [] = "TEN";
+const byte GOOD_COMP [] = "ONE";
+const byte RIGHT_SPEED [] = "TWO";
+const byte GOT_THIS [] = "THREE";
+const byte LITTLE_FASTER [] = "FOUR";
+const byte INTRO_AND_MUSIC [] = "FIVE";
+const byte PUSH_HARDER [] = "SIX";
+const byte MED_HELP [] = "SEVEN";
+const byte TIRED [] = "EIGHT";
+const byte MUSIC_ONLY [] = "NINE";
 
 const int AVERAGE_BPM_SAMPLE_TIME = 5000;//How long between averaging and postings of averageBpm, in millis().
 const int BPM_CONVERT = (60 / (AVERAGE_BPM_SAMPLE_TIME / 1000));
@@ -182,6 +191,11 @@ void UpdateSetup() {
     overallBpmStartTime = millis();
     averageBpmCounterStart = 0;
     overallBpmCounterStart = beatCounter;
+    audioFeedbackMode = CHECK_FOR_PACE;
+    haveAchievedGoodPace = false; // guilty until proven innocent
+    haveAchievedGoodDepth = false;
+    havePlayedMusic = false;
+    numLittleFasterPrompts = 0;
 
     // read the adult/child button at the moment we exit this state and use that value to determine which mode runs in the play state
     adultMode = digitalRead(BUTTON_ADULTCHILD);  // 1= Adult, 0= Child
@@ -194,7 +208,7 @@ void UpdateSetup() {
       Serial.println("adultMode= CHILD");
     }
 
-    commChannel.sendMsg(EIGHT, sizeof(EIGHT));
+
 
     GoToNextState();
   }
@@ -229,7 +243,6 @@ void UpdatePlay() {
   //    }
 
   if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
-    commChannel.sendMsg(FOUR, sizeof(FOUR));
     overallBpmCount = beatCounter - overallBpmCounterStart;
     overallSeconds = (millis() - overallBpmStartTime) / 1000;
     digitalWrite(LED_AVERAGEBPM, LOW);
@@ -253,7 +266,7 @@ void UpdateFeedback() {
 
 
   if (startStopButton.wasPressed()) {
-    commChannel.sendMsg(THREE, sizeof(THREE));
+
     greenDisplay.clear();
     greenDisplay.writeDisplay();
     digitalWrite(LED_OVERALLBPM, LOW);
@@ -280,7 +293,6 @@ void UpdateCalibration() {
 
   if (startStopButton.wasPressed()) {
 
-    commChannel.sendMsg(TWO, sizeof(TWO));
     GoToNextState();
   }
 
