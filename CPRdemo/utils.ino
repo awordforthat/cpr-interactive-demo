@@ -13,7 +13,7 @@ void calculateAverageBPM() {
       if (!haveAchievedGoodPace)
       {
         if (averageBpm < lowIdealBpm ) {
-          if (numLittleFasterPrompts < 2) {
+          if (numLittleFasterPrompts < 1) {
             // if we haven't sent "little faster" very much, play that
             commChannel.sendMsg(LITTLE_FASTER, sizeof(LITTLE_FASTER));
             numLittleFasterPrompts++;

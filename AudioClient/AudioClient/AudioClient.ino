@@ -61,7 +61,7 @@ void setup ()
   root.ls();
 }  // end of setup
 
-// forward declarition
+// forward declaration
 void playcomplete(FatReader &file);
 void loop ()
 {
@@ -84,7 +84,7 @@ void loop ()
     }
     if (msg == INTRO_AND_MUSIC) {
       playcomplete("MuscPcA.wav");  // too slow (maybe 2nd time)
-      playcomplete("StynAlvB.wav");
+      playfile("StynAlvC.wav");
     }
     if (msg == PUSH_HARDER) {
       playcomplete("PshHrdrA.wav");  // too shallow
@@ -96,7 +96,7 @@ void loop ()
       playcomplete("TiredA.wav"); // 75% through duration of play
     }
     if (msg == MUSIC_ONLY) {
-      playcomplete("StynAlvA.wav"); // music only, no intro
+      playfile("StynAlvA.wav"); // music only, no intro
     }
 
 
