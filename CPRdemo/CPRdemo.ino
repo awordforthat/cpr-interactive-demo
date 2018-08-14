@@ -182,7 +182,7 @@ void GoToNextState()
 
 void UpdateSetup() {
   // gets the smoothed value from the time pot, then maps it into the min-max second range
-
+  // tiny change
   timeCountDown = ((int)map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS));
   playDuration = timeCountDown;
   handleStartTimeConvert();
