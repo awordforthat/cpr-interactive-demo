@@ -80,6 +80,7 @@ int startDistanceValue = 0;
 int averageBpm = 0;
 int beatCounter = 0;
 long averageIntervalStartTime = 0;
+int playDuration;
 int averageBpmCounterStart = 0;
 long overallBpmStartTime = 0;
 int overallBpmCounterStart = 0;
@@ -92,6 +93,8 @@ int distanceCounterBeats = 5;
 int overallBpmCount = 0;
 int feedbackMode = -1;
 int numCorrections = 0;
+boolean sentFeedbackLastTime = true;
+boolean sent75pctInfo = false;
 
 
 unsigned long previousBlink = millis();
@@ -181,6 +184,7 @@ void UpdateSetup() {
   // gets the smoothed value from the time pot, then maps it into the min-max second range
 
   timeCountDown = ((int)map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS));
+  playDuration = timeCountDown;
   handleStartTimeConvert();
 
   if (startStopButton.wasPressed()) {
@@ -216,8 +220,7 @@ void UpdateSetup() {
   }
 }
 
-boolean sentFeedbackLastTime = true;
-boolean sent75pctInfo = false;
+
 
 void UpdatePlay() {
   if (seconds < 10) {
@@ -234,7 +237,8 @@ void UpdatePlay() {
   checkForDirectionChange(currentDistanceValue);
   previousDistanceValue = currentDistanceValue;
 
-  if(millis() - overallBpmStartTime > 0.75* timeCountDown * 1000 && !sent75pctInfo) {
+  if(millis() - overallBpmStartTime > 0.75* playDuration * 1000 && !sent75pctInfo) {
+
     commChannel.sendMsg(TIRED, sizeof(TIRED));
     sent75pctInfo = true;
   }
