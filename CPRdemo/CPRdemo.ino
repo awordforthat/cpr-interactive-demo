@@ -120,8 +120,8 @@ const int MIN_ACCEPTABLE_BPM = 100;
 int maximumDepth = (350 / smoothingValue); //Eventually get this from a read of the bpm pot in the calibrate state.
 //new
 
-boolean checkPaceProficiency(int averageBpm, int lowLimit, int highLimit = 140) {
-  return averageBpm > lowLimit && averageBpm < highLimit;
+boolean checkPaceProficiency(int averageBpm, int lowLimit) {
+  return averageBpm > lowLimit;
 }
 
 bool checkDepthProficiency() {
