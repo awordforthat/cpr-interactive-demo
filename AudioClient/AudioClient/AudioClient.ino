@@ -16,10 +16,10 @@ const byte RIGHT_SPEED [] = "TWO";
 const byte GOT_THIS [] = "THREE";
 const byte LITTLE_FASTER [] = "FOUR";
 const byte INTRO_AND_MUSIC [] = "FIVE";
-//const byte PUSH_HARDER [] = "SIX";
+const byte PUSH_HARDER [] = "SIX";
 const byte MED_HELP [] = "SEVEN";
 const byte TIRED [] = "EIGHT";
-//const byte MUSIC_ONLY [] = "NINE";
+const byte MUSIC_ONLY [] = "NINE";
 /*
    Define macro to put error messages in flash memory
 */
@@ -87,18 +87,18 @@ void loop ()
       playcomplete("MuscPcA.wav");  // too slow (maybe 2nd time)
       playfile("StynAlvC.wav");
     }
-//    if (msg == PUSH_HARDER) {
-//      playcomplete("PshHrdrA.wav");  // too shallow
-//    }
+    if (msg == PUSH_HARDER) {
+      playcomplete("PshHrdrA.wav");  // too shallow
+    }
     if (msg == MED_HELP) {
       playcomplete("MedHelpA.wav"); // ending (feedback)
     }
     if (msg == TIRED) {
       playcomplete("TiredA.wav"); // 75% through duration of play
     }
-//    if (msg == MUSIC_ONLY) {
-//      playfile("StynAlvA.wav"); // music only, no intro
-//    }
+    if (msg == MUSIC_ONLY) {
+      playfile("StynAlvA.wav"); // music only, no intro
+    }
 
 
     Serial.write (commChannel.getData (), commChannel.getLength ());

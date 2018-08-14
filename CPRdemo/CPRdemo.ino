@@ -148,7 +148,7 @@ void setup() {
   greenDisplay.writeDisplay();
   redDisplay.clear();
   redDisplay.writeDisplay();
-  redDisplay.drawColon(true);  //Why is this blnking like mad?
+  redDisplay.drawColon(true);  
   redDisplay.writeDisplay();
 
   redDisplay.setBrightness (15);  //Values 0-15
@@ -217,6 +217,7 @@ void UpdateSetup() {
 }
 
 boolean sentFeedbackLastTime = true;
+boolean sent75pctInfo = false;
 
 void UpdatePlay() {
   if (seconds < 10) {
@@ -231,6 +232,13 @@ void UpdatePlay() {
 
   int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
   checkForDirectionChange(currentDistanceValue);
+  previousDistanceValue = currentDistanceValue;
+
+  if(millis() - overallBpmStartTime > 0.75* timeCountDown * 1000 && !sent75pctInfo) {
+    commChannel.sendMsg(TIRED, sizeof(TIRED));
+    sent75pctInfo = true;
+  }
+  
   if (millis() >= (averageIntervalStartTime + AVERAGE_INTERVAL_SAMPLE_TIME)) {
     // do our calculations
     calculateAverageBPM();
@@ -281,7 +289,7 @@ void UpdatePlay() {
     averageIntervalStartTime = millis();
 
   }
-  previousDistanceValue = currentDistanceValue;
+  
 
 
   if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
