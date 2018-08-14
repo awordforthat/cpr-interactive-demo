@@ -1,19 +1,66 @@
 
 
 void calculateAverageBPM() {
-   int averageBpmCount = (beatCounter - averageBpmCounterStart);
-    averageBpm = (averageBpmCount * BPM_CONVERT);
+  int averageBpmCount = (beatCounter - averageBpmCounterStart);
+  averageBpm = (averageBpmCount * BPM_CONVERT);
 
-    // print to screen
-    greenDisplay.print(averageBpm);
-    greenDisplay.writeDigitRaw (2, chrDot3); //Top left dot
-    greenDisplay.writeDisplay();
-    digitalWrite(LED_AVERAGEBPM, HIGH);
+  // print to screen
+  greenDisplay.print(averageBpm);
+  greenDisplay.writeDigitRaw (2, chrDot3); //Top left dot
+  greenDisplay.writeDisplay();
+  digitalWrite(LED_AVERAGEBPM, HIGH);
 
-    
-    averageBpmCounterStart = beatCounter;
+
+  averageBpmCounterStart = beatCounter;
 }
 
+
+void deliverFeedback(bool hasGoodPace, bool hasGoodDepth) {
+  switch (feedbackMode) {
+    case LISTENING:
+      if(numCorrections == 0)
+      {
+        commChannel.sendMsg(GOT_THIS, sizeof(GOT_THIS));
+        numCorrections++;
+      }
+      
+      break;
+    case CHECK_FOR_PACE:
+      if (!hasGoodPace) {
+        deliverPaceFeedback();
+      }
+      break;
+    case CHECK_FOR_DEPTH:
+      if (!hasGoodDepth) {
+        deliverDepthFeedback();
+      }
+      break;
+    default:
+      Serial.println("Feedback mode " + (String) + " was not recognized!");
+  }
+}
+
+void deliverPaceFeedback() {
+
+  if (numCorrections < MAX_NUM_CORRECTIONS) {
+
+    if (numCorrections <= 1) {
+      commChannel.sendMsg(LITTLE_FASTER, sizeof(LITTLE_FASTER));
+      Serial.println("Little faster");
+    }
+    else {
+      commChannel.sendMsg(INTRO_AND_MUSIC, sizeof(INTRO_AND_MUSIC));
+      Serial.println("Play music");
+    }
+    numCorrections++;
+  }
+}
+
+void deliverDepthFeedback() {
+  if (numCorrections < MAX_NUM_CORRECTIONS) {
+    Serial.println("Do better at depth!");
+  }
+}
 
 int averageDownDistance = 0;
 bool firstTimeThrough = true;

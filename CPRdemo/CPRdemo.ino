@@ -32,8 +32,9 @@ enum StateID {
 };
 
 enum AudioFeedbackMode {
-  CHECK_FOR_PACE,
-  CHECK_FOR_DEPTH
+  CHECK_FOR_PACE, // user has made a pace mistake. Coach them through it until mistake is resolved.
+  CHECK_FOR_DEPTH, // user has made a depth mistake. Coach them through it until mistake is resolved.
+  LISTENING // waiting for something to go wrong to kick us into pace or depth mode
 };
 
 size_t fWrite(const byte what) {
@@ -78,7 +79,7 @@ int previousDistanceValue = 0;
 int startDistanceValue = 0;
 int averageBpm = 0;
 int beatCounter = 0;
-long averageBpmStartTime = 0;
+long averageIntervalStartTime = 0;
 int averageBpmCounterStart = 0;
 long overallBpmStartTime = 0;
 int overallBpmCounterStart = 0;
@@ -89,11 +90,9 @@ boolean previousDownWasShort = false;
 int shortUpStrokeCounter = 0;
 int distanceCounterBeats = 5;
 int overallBpmCount = 0;
-int audioFeedbackMode = CHECK_FOR_PACE;
-bool haveAchievedGoodPace = false; // guilty until proven innocent
-bool haveAchievedGoodDepth = false;
-bool havePlayedMusic = false;
-int numLittleFasterPrompts = 0;
+int feedbackMode = -1;
+int numCorrections = 0;
+
 
 unsigned long previousBlink = millis();
 
@@ -108,19 +107,26 @@ const byte MED_HELP [] = "SEVEN";
 const byte TIRED [] = "EIGHT";
 const byte MUSIC_ONLY [] = "NINE";
 
-const int AVERAGE_BPM_SAMPLE_TIME = 5000;//How long between averaging and postings of averageBpm, in millis().
-const int BPM_CONVERT = (60 / (AVERAGE_BPM_SAMPLE_TIME / 1000));
+const int AVERAGE_INTERVAL_SAMPLE_TIME = 5000;//How long between averaging and postings of averageBpm, in millis().
+const int BPM_CONVERT = (60 / (AVERAGE_INTERVAL_SAMPLE_TIME / 1000));
 const int MAX_NUM_SECONDS = 182;
 const int MIN_NUM_SECONDS = 15;
-//const int MAX_NUM_HUNDREDTHS = 200; //Unused
-//const int MIN_NUM_HUNDREDTHS = 0; //Unused
+const int MAX_NUM_CORRECTIONS = 3;
+const int MIN_ACCEPTABLE_BPM = 100;
+
 
 //NEW
 //Variables for Calibrate state
 int maximumDepth = (350 / smoothingValue); //Eventually get this from a read of the bpm pot in the calibrate state.
 //new
 
+boolean checkPaceProficiency(int averageBpm, int lowLimit, int highLimit = 140) {
+  return averageBpm > lowLimit && averageBpm < highLimit;
+}
 
+bool checkDepthProficiency() {
+  return true;
+}
 
 
 // the setup function runs once when you press reset or power the board
@@ -186,15 +192,12 @@ void UpdateSetup() {
     previousDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
 
     startDistanceValue = previousDistanceValue;
-    averageBpmStartTime = millis();
+    averageIntervalStartTime = millis();
     overallBpmStartTime = millis();
     averageBpmCounterStart = 0;
     overallBpmCounterStart = beatCounter;
-    audioFeedbackMode = CHECK_FOR_PACE;
-    haveAchievedGoodPace = false; // guilty until proven innocent
-    haveAchievedGoodDepth = false;
-    havePlayedMusic = false;
-    numLittleFasterPrompts = 0;
+    feedbackMode = LISTENING;
+    numCorrections = 0;
 
     // read the adult/child button at the moment we exit this state and use that value to determine which mode runs in the play state
     adultMode = digitalRead(BUTTON_ADULTCHILD);  // 1= Adult, 0= Child
@@ -213,6 +216,8 @@ void UpdateSetup() {
   }
 }
 
+boolean sentFeedbackLastTime = true;
+
 void UpdatePlay() {
   if (seconds < 10) {
     redDisplay.writeDigitNum(3, 0);
@@ -224,16 +229,58 @@ void UpdatePlay() {
   handleTimeUpdate(currentMillis);
   handleColonBlink(currentMillis);
 
-  int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue; 
+  int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
   checkForDirectionChange(currentDistanceValue);
-  if (millis() >= (averageBpmStartTime + AVERAGE_BPM_SAMPLE_TIME)) {
-
+  if (millis() >= (averageIntervalStartTime + AVERAGE_INTERVAL_SAMPLE_TIME)) {
+    // do our calculations
     calculateAverageBPM();
+    // TODO: calculate distance here
+
+    // how is the user doing?
+    bool hasGoodPace = checkPaceProficiency(averageBpm, MIN_ACCEPTABLE_BPM);
+    bool hasGoodDepth = checkDepthProficiency();
+
+    // evaluate feedback mode, changing if necessary
+    if (feedbackMode == LISTENING && !hasGoodPace || !hasGoodDepth) { // listening for a mistake. if there is one, kick into correction mode
+      if (!hasGoodDepth) {
+        feedbackMode = CHECK_FOR_DEPTH;
+        numCorrections = 0;
+      }
+      if (!hasGoodPace) {
+        feedbackMode = CHECK_FOR_PACE; // if both pace and depth are bad, this line will override the last one, which is what we want.
+        numCorrections = 0;
+      }
+    }
+
+    // give feedback if appropriate
+    if (!sentFeedbackLastTime) {
+      deliverFeedback(hasGoodPace, hasGoodDepth);
+    }
+    sentFeedbackLastTime = !sentFeedbackLastTime;
+
+
+    // if the user has corrected their mistake, kick back into listening mode
+    switch (feedbackMode) {
+      case CHECK_FOR_PACE:
+        if (hasGoodPace) {
+          commChannel.sendMsg(RIGHT_SPEED, sizeof(RIGHT_SPEED));
+          feedbackMode = LISTENING;
+          numCorrections = 0;
+        }
+        break;
+      case CHECK_FOR_DEPTH:
+        if (hasGoodDepth) {
+          commChannel.sendMsg(GOOD_COMP, sizeof(GOOD_COMP));
+          feedbackMode = LISTENING;
+          numCorrections = 0;
+        }
+        break;
+    }
 
     // reset for next round
-    averageBpmStartTime = millis();
+    averageIntervalStartTime = millis();
 
-  } 
+  }
   previousDistanceValue = currentDistanceValue;
 
 
@@ -241,12 +288,13 @@ void UpdatePlay() {
     overallBpmCount = beatCounter - overallBpmCounterStart;
     overallSeconds = (millis() - overallBpmStartTime) / 1000;
     digitalWrite(LED_AVERAGEBPM, LOW);
-
     digitalWrite(LED_OVERALLBPM, HIGH);
 
     greenDisplay.print((overallBpmCount * secsPerMinute) / overallSeconds);
     greenDisplay.writeDigitRaw (2, chrDot4); //Bottom left dot
     greenDisplay.writeDisplay();
+
+    commChannel.sendMsg(MED_HELP, sizeof(MED_HELP));
     GoToNextState();
 
   }
