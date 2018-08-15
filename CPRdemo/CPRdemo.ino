@@ -100,21 +100,21 @@ boolean sent75pctInfo = false;
 unsigned long previousBlink = millis();
 
 const int BLINK_INTERVAL = 500;
-const byte GOOD_COMP [] = "ONE";
-const byte RIGHT_SPEED [] = "TWO";
-const byte GOT_THIS [] = "THREE";
-const byte LITTLE_FASTER [] = "FOUR";
-const byte INTRO_AND_MUSIC [] = "FIVE";
-const byte PUSH_HARDER [] = "SIX";
-const byte MED_HELP [] = "SEVEN";
-const byte TIRED [] = "EIGHT";
-const byte MUSIC_ONLY [] = "NINE";
+const byte GOOD_COMP [] = "1";
+const byte RIGHT_SPEED [] = "2";
+const byte GOT_THIS [] = "3";
+const byte LITTLE_FASTER [] = "4";
+const byte INTRO_AND_MUSIC [] = "5";
+const byte PUSH_HARDER [] = "6";
+const byte MED_HELP [] = "7";
+const byte TIRED [] = "8";
+const byte MUSIC_ONLY [] = "9";
 
 const int AVERAGE_INTERVAL_SAMPLE_TIME = 5000;//How long between averaging and postings of averageBpm, in millis().
 const int BPM_CONVERT = (60 / (AVERAGE_INTERVAL_SAMPLE_TIME / 1000));
 const int MAX_NUM_SECONDS = 182;
 const int MIN_NUM_SECONDS = 15;
-const int MAX_NUM_CORRECTIONS = 3;
+const int MAX_NUM_CORRECTIONS = 2;
 const int MIN_ACCEPTABLE_BPM = 100;
 
 
@@ -151,7 +151,7 @@ void setup() {
   greenDisplay.writeDisplay();
   redDisplay.clear();
   redDisplay.writeDisplay();
-  redDisplay.drawColon(true);  
+  redDisplay.drawColon(true);
   redDisplay.writeDisplay();
 
   redDisplay.setBrightness (15);  //Values 0-15
@@ -237,12 +237,12 @@ void UpdatePlay() {
   checkForDirectionChange(currentDistanceValue);
   previousDistanceValue = currentDistanceValue;
 
-  if(millis() - overallBpmStartTime > 0.75* playDuration * 1000 && !sent75pctInfo) {
+  if (((millis() - overallBpmStartTime) > (0.75 * playDuration * 1000)) && !sent75pctInfo) {
 
     commChannel.sendMsg(TIRED, sizeof(TIRED));
     sent75pctInfo = true;
   }
-  
+
   if (millis() >= (averageIntervalStartTime + AVERAGE_INTERVAL_SAMPLE_TIME)) {
     // do our calculations
     calculateAverageBPM();
@@ -293,7 +293,7 @@ void UpdatePlay() {
     averageIntervalStartTime = millis();
 
   }
-  
+
 
 
   if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
@@ -419,3 +419,10 @@ void loop() {
     Removed overall BPM function
     Added code for adding average and overall BPM LEDs.  Ready for hardware.
 */
+
+/*
+   Not getting 75% message. Added parens in line 240 and fixed.  Or Rx/Tx jumpers were loose.
+  On Util line 24 why add to numCorrections?  To prevent another iteration of this message?
+
+*/
+

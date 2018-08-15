@@ -21,7 +21,7 @@ void deliverFeedback(bool hasGoodPace, bool hasGoodDepth) {
       if(numCorrections == 0)
       {
         commChannel.sendMsg(GOT_THIS, sizeof(GOT_THIS));
-        numCorrections++;
+        numCorrections++; 
       }
       
       break;
@@ -44,7 +44,7 @@ void deliverPaceFeedback() {
 
   if (numCorrections < MAX_NUM_CORRECTIONS) {
 
-    if (numCorrections <= 1) {
+    if (numCorrections < 1) {
       commChannel.sendMsg(LITTLE_FASTER, sizeof(LITTLE_FASTER));
       Serial.println("Little faster");
     }
