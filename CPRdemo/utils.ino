@@ -24,7 +24,7 @@ bool checkDepthProficiency() {
 //  Serial.println("Got " + (String)numIntervalBeats + " this round");
 //  Serial.println("Of those, " + (String)numBadDowns + " were short");
 
-  return (numBadDowns / numIntervalBeats) < 0.15;
+  return (numBadDowns / numIntervalBeats) < 0.2;
 }
 
 void deliverFeedback(bool hasGoodPace, bool hasGoodDepth) {
@@ -69,8 +69,11 @@ void deliverPaceFeedback() {
 }
 
 void deliverDepthFeedback() {
+  Serial.println("Num corrections: " + (String)numCorrections);
   if (numCorrections < MAX_NUM_CORRECTIONS) {
-    Serial.println("Do better at depth!");
+    commChannel.sendMsg(PUSH_HARDER, sizeof(PUSH_HARDER));
+    numCorrections++;
+    Serial.println("Push harder!");
   }
 }
 
