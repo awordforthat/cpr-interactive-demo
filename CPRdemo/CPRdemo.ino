@@ -88,11 +88,14 @@ int overallSeconds = 0;
 int upDistance = 0;
 int downDistance = 0;
 boolean previousDownWasShort = false;
+boolean previousUpWasShort = false;
 int shortUpStrokeCounter = 0;
 int distanceCounterBeats = 5;
 int overallBpmCount = 0;
 int feedbackMode = -1;
 int numCorrections = 0;
+int numBadDowns = 0;
+int numIntervalBeats = 0;
 boolean sentFeedbackLastTime = true;
 boolean sent75pctInfo = false;
 
@@ -116,20 +119,16 @@ const int MAX_NUM_SECONDS = 182;
 const int MIN_NUM_SECONDS = 15;
 const int MAX_NUM_CORRECTIONS = 2;
 const int MIN_ACCEPTABLE_BPM = 100;
+const int MIN_STROKE_DISTANCE = 8;
 
 
 //NEW
 //Variables for Calibrate state
-int maximumDepth = (350 / smoothingValue); //Eventually get this from a read of the bpm pot in the calibrate state.
+int maximumDepth = 32; //(350 / smoothingValue); //Eventually get this from a read of the bpm pot in the calibrate state.
+
 //new
 
-boolean checkPaceProficiency(int averageBpm, int lowLimit) {
-  return averageBpm > lowLimit;
-}
 
-bool checkDepthProficiency() {
-  return true;
-}
 
 
 // the setup function runs once when you press reset or power the board
@@ -202,7 +201,10 @@ void UpdateSetup() {
     overallBpmCounterStart = beatCounter;
     feedbackMode = LISTENING;
     numCorrections = 0;
-
+    previousDownWasShort = false;
+    previousUpWasShort = false;
+    numBadDowns = 0;
+    numIntervalBeats = 0;
     // read the adult/child button at the moment we exit this state and use that value to determine which mode runs in the play state
     adultMode = digitalRead(BUTTON_ADULTCHILD);  // 1= Adult, 0= Child
     if (adultMode == 1)
@@ -291,6 +293,8 @@ void UpdatePlay() {
 
     // reset for next round
     averageIntervalStartTime = millis();
+    numBadDowns = 0;
+    numIntervalBeats = 0;
 
   }
 

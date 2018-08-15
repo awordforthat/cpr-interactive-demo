@@ -14,16 +14,28 @@ void calculateAverageBPM() {
   averageBpmCounterStart = beatCounter;
 }
 
+boolean checkPaceProficiency(int averageBpm, int lowLimit) {
+  return averageBpm > lowLimit;
+}
+
+bool checkDepthProficiency() {
+  // how many beats did we expect during this interval?
+
+//  Serial.println("Got " + (String)numIntervalBeats + " this round");
+//  Serial.println("Of those, " + (String)numBadDowns + " were short");
+
+  return (numBadDowns / numIntervalBeats) < 0.15;
+}
 
 void deliverFeedback(bool hasGoodPace, bool hasGoodDepth) {
   switch (feedbackMode) {
     case LISTENING:
-      if(numCorrections == 0)
+      if (numCorrections == 0)
       {
         commChannel.sendMsg(GOT_THIS, sizeof(GOT_THIS));
-        numCorrections++; 
+        numCorrections++;
       }
-      
+
       break;
     case CHECK_FOR_PACE:
       if (!hasGoodPace) {
@@ -62,14 +74,11 @@ void deliverDepthFeedback() {
   }
 }
 
-int averageDownDistance = 0;
-bool firstTimeThrough = true;
+
 
 void checkForDirectionChange(int currentDistanceValue) {
   // get the incremental distance that the pot has traveled this loop()
   int deltaDistance = abs(currentDistanceValue - previousDistanceValue);
-
-  //  if(deltaDistance < 3) {return;}
 
   // no matter what, record that we've moved either up or down, independent of whether we've changed direction
   if (dirPlus) {
@@ -80,43 +89,33 @@ void checkForDirectionChange(int currentDistanceValue) {
   else if (!dirPlus) {
 
     downDistance += deltaDistance;
+   
   }
 
 
   // no matter what, add to total distance traveled
   totalDistance += deltaDistance;
 
-  boolean spuriousRead = false;
+  // protect against jitter: a stroke must have a minimum distance before we allow it to count as a real stroke
+  if((dirPlus && upDistance < MIN_STROKE_DISTANCE) || (!dirPlus && downDistance < MIN_STROKE_DISTANCE)) {
+    //Serial.println("Jitter!");
+    return;
+  }
 
 
   if ((currentDistanceValue < previousDistanceValue) && !dirPlus) { //Has direction changed?  If so, going up now.
     //    Serial.println("Going up");
 
-    if (downDistance < (maximumDepth - 1)) {
-      if (!(downDistance == 1)) {
-        previousDownWasShort = true;
-        //        Serial.println("Down was short"); //This will call an audio file later
-      }
-      else {
-        spuriousRead = true;
-      }
-
-      // check down stroke length here. Long enough?
-
-      //Serial.println();
+    if(downDistance < maximumDepth * 0.75) {
+      Serial.println("Short down!");
+      previousDownWasShort = true;
+      numBadDowns++;
     }
     else {
       previousDownWasShort = false;
     }
 
     downDistance = 0;
-
-
-    if (beatCounter % distanceCounterBeats == 0) {
-      // how many too-shallow releases were there?
-      //Serial.println("Short strokes: " + (String)shortUpStrokeCounter);
-
-    }
 
     startDistanceValue = currentDistanceValue; //Update start distance
     dirPlus = !dirPlus; //Change direction flag
@@ -126,37 +125,23 @@ void checkForDirectionChange(int currentDistanceValue) {
   if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
     directionChangeCounter ++; //Add one to count to obtain cycles.
     //    Serial.println("Going down");
-    //Serial.println("Up stroke length " + (String)upDistance);
-    if (upDistance < (maximumDepth - 1)) {
-      if (upDistance != 1) {
 
-        // TODO: Record up stroke as being short iff previous down stroke was *not* also short
-        if (!previousDownWasShort) {
-          shortUpStrokeCounter++;
-          Serial.println("Adding short up");
-          // check up stroke length here. Long enough?
-          //Serial.println("Release chest fully " + (String)shortUpStrokeCounter); //This will call an audio file later
-          //Serial.println();
-        }
-
-
-
-
-      }
-      else {
-        spuriousRead = true;
-      }
+    if(upDistance < maximumDepth * 0.75) {
+      // Serial.println("Short up!");
+      previousUpWasShort = true;
     }
-
+    else {
+      previousUpWasShort = false;
+    }
     upDistance = 0;
 
 
     startDistanceValue = currentDistanceValue; //Update start distance
     dirPlus = !dirPlus; //Change direction flag
-    if (!spuriousRead) {
 
-      beatCounter++;
-    }
+    beatCounter++;
+    numIntervalBeats++;
+
 
 
   }
