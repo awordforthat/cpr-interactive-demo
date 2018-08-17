@@ -227,11 +227,16 @@ void UpdatePlay() {
   checkForDirectionChange(currentDistanceValue);
   previousDistanceValue = currentDistanceValue;
   if (beatCounter == 0) {
-  //don't do nothin'
-}
-else {
+    redDisplay.blinkRate(1);
+    redDisplay.writeDisplay();
 
-  if (seconds < 10) {
+    //don't do nothin'
+  }
+  else {
+    redDisplay.blinkRate(0);
+    redDisplay.writeDisplay();
+
+    if (seconds < 10) {
       redDisplay.writeDigitNum(3, 0);
       redDisplay.writeDisplay();
     }
