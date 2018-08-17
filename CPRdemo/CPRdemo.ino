@@ -119,7 +119,7 @@ const int MAX_NUM_SECONDS = 182;
 const int MIN_NUM_SECONDS = 15;
 const int MAX_NUM_CORRECTIONS = 2;
 const int MIN_ACCEPTABLE_BPM = 100;
-const int MIN_STROKE_DISTANCE = 8;
+const int MIN_STROKE_DISTANCE = 5;
 
 
 //NEW
@@ -193,7 +193,7 @@ void UpdateSetup() {
     greenDisplay.writeDisplay();
 
     previousDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
-
+Serial.println("previousDistanceValue = " + (String)previousDistanceValue);
     startDistanceValue = previousDistanceValue;
     averageIntervalStartTime = millis();
     overallBpmStartTime = millis();
@@ -368,6 +368,8 @@ void loop() {
   startStopButton.updateButton();
   timePot.updatePot();
   bpmPot.updatePot();
+
+//  Serial.println((String)bpmPot.getRollingAverage() + " " + (String)bpmPot.getInstantaneousValue());
 
 
   bool error = false;

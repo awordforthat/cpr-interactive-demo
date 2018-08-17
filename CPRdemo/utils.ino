@@ -21,8 +21,8 @@ boolean checkPaceProficiency(int averageBpm, int lowLimit) {
 bool checkDepthProficiency() {
   // how many beats did we expect during this interval?
 
-//  Serial.println("Got " + (String)numIntervalBeats + " this round");
-//  Serial.println("Of those, " + (String)numBadDowns + " were short");
+  //  Serial.println("Got " + (String)numIntervalBeats + " this round");
+  //  Serial.println("Of those, " + (String)numBadDowns + " were short");
 
   return (numBadDowns / numIntervalBeats) < 0.2;
 }
@@ -82,7 +82,7 @@ void deliverDepthFeedback() {
 void checkForDirectionChange(int currentDistanceValue) {
   // get the incremental distance that the pot has traveled this loop()
   int deltaDistance = abs(currentDistanceValue - previousDistanceValue);
-
+  
   // no matter what, record that we've moved either up or down, independent of whether we've changed direction
   if (dirPlus) {
 
@@ -92,7 +92,8 @@ void checkForDirectionChange(int currentDistanceValue) {
   else if (!dirPlus) {
 
     downDistance += deltaDistance;
-   
+//    Serial.println("deltaDistance " + (String)deltaDistance);
+//    Serial.println("downDistance is " + (String)downDistance);
   }
 
 
@@ -100,17 +101,18 @@ void checkForDirectionChange(int currentDistanceValue) {
   totalDistance += deltaDistance;
 
   // protect against jitter: a stroke must have a minimum distance before we allow it to count as a real stroke
-  if((dirPlus && upDistance < MIN_STROKE_DISTANCE) || (!dirPlus && downDistance < MIN_STROKE_DISTANCE)) {
-    //Serial.println("Jitter!");
-    return;
-  }
+//  if ((dirPlus && upDistance < MIN_STROKE_DISTANCE) || (!dirPlus && downDistance < MIN_STROKE_DISTANCE)) {
+//    //Serial.println("Jitter!");
+//    return;
+//  }
 
 
   if ((currentDistanceValue < previousDistanceValue) && !dirPlus) { //Has direction changed?  If so, going up now.
-    //    Serial.println("Going up");
+    Serial.println("Going up");
 
-    if(downDistance < maximumDepth * 0.75) {
-      Serial.println("Short down!");
+    //Why are the down distance values as low as 10 when a full stroke was done?
+    if (downDistance < maximumDepth * 0.6) {
+      //Serial.println("Short down!");
       previousDownWasShort = true;
       numBadDowns++;
     }
@@ -127,9 +129,9 @@ void checkForDirectionChange(int currentDistanceValue) {
 
   if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
     directionChangeCounter ++; //Add one to count to obtain cycles.
-    //    Serial.println("Going down");
+    Serial.println("Going down");
 
-    if(upDistance < maximumDepth * 0.75) {
+    if (upDistance < maximumDepth * 0.60) {
       // Serial.println("Short up!");
       previousUpWasShort = true;
     }
