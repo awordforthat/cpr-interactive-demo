@@ -90,7 +90,7 @@ void checkForDirectionChange(int currentDistanceValue) {
 
 
   if ((currentDistanceValue < previousDistanceValue) && !dirPlus) { //Has direction changed?  If so, going up now.
-    //    Serial.println("Going up");
+        Serial.println("Going up");
 
     if (downDistance < (maximumDepth - 1)) {
       if (!(downDistance == 1)) {
@@ -125,7 +125,7 @@ void checkForDirectionChange(int currentDistanceValue) {
 
   if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
     directionChangeCounter ++; //Add one to count to obtain cycles.
-    //    Serial.println("Going down");
+        Serial.println("Going down");
     //Serial.println("Up stroke length " + (String)upDistance);
     if (upDistance < (maximumDepth - 1)) {
       if (upDistance != 1) {
