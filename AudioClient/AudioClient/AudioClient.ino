@@ -11,15 +11,15 @@ FatReader file;   // This object represent the WAV file
 WaveHC wave;      // This is the only wave (audio) object, since we will only play one at a time
 
 
-const byte GOOD_COMP [] = "ONE";
-const byte RIGHT_SPEED [] = "TWO";
-const byte GOT_THIS [] = "THREE";
-const byte LITTLE_FASTER [] = "FOUR";
-const byte INTRO_AND_MUSIC [] = "FIVE";
-const byte PUSH_HARDER [] = "SIX";
-const byte MED_HELP [] = "SEVEN";
-const byte TIRED [] = "EIGHT";
-const byte MUSIC_ONLY [] = "NINE";
+const byte GOOD_COMP [] = "1";
+const byte RIGHT_SPEED [] = "2";
+const byte GOT_THIS [] = "3";
+const byte LITTLE_FASTER [] = "4";
+const byte INTRO_AND_MUSIC [] = "5";
+const byte PUSH_HARDER [] = "6";
+const byte MED_HELP [] = "7";
+const byte TIRED [] = "8";
+const byte MUSIC_ONLY [] = "9";
 /*
    Define macro to put error messages in flash memory
 */

@@ -44,7 +44,7 @@ size_t fWrite(const byte what) {
 
 // variables common to all states
 StateID currentState = SETUP;
-bool includeCalibration = true;
+bool includeCalibration = false;
 bool adultMode = true;
 int smoothingValue = 15;
 Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
@@ -375,13 +375,13 @@ void UpdateCalibration() {
 
   }
 
-    Serial.println("Time's up!");
-    digitalWrite(LED_AVERAGEBPM, LOW);
-    digitalWrite(LED_OVERALLBPM, LOW);
-    Serial.println("Final Min = " + (String)calibrateMinimumDepth);
-    Serial.println("Final Max = " + (String)calibrateMaximumDepth);
-    GoToNextState();
-  
+  Serial.println("Time's up!");
+  digitalWrite(LED_AVERAGEBPM, LOW);
+  digitalWrite(LED_OVERALLBPM, LOW);
+  Serial.println("Final Min = " + (String)calibrateMinimumDepth);
+  Serial.println("Final Max = " + (String)calibrateMaximumDepth);
+  GoToNextState();
+
 }
 //NEW
 //Send some message to redDisplay? "Prss Dn"?
@@ -467,3 +467,9 @@ void loop() {
   Removed overall BPM function
   Added code for adding average and overall BPM LEDs.  Ready for hardware.
 */
+
+/* Notes from 8/19
+    added calibraton code to Calibration state.  Need to finish by using the calibration values.
+*/
+
+
