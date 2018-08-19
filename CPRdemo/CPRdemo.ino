@@ -44,7 +44,7 @@ size_t fWrite(const byte what) {
 
 // variables common to all states
 StateID currentState = SETUP;
-bool includeCalibration = false;
+bool includeCalibration = true;
 bool adultMode = true;
 int smoothingValue = 15;
 Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
@@ -118,10 +118,11 @@ const int MAX_NUM_CORRECTIONS = 3;
 const int MIN_ACCEPTABLE_BPM = 100;
 
 
-//NEW
+
 //Variables for Calibrate state
 int maximumDepth = (350 / smoothingValue); //Eventually get this from a read of the bpm pot in the calibrate state.
-//new
+int calibrateMaximumDepth = 0;
+int calibrateMinimumDepth = 1023;
 
 boolean checkPaceProficiency(int averageBpm, int lowLimit) {
   return averageBpm > lowLimit;
@@ -348,25 +349,58 @@ void UpdateCalibration() {
   redDisplay.writeDigitRaw(2, chrDot3);
   redDisplay.writeDisplay();
 
+  // turn on LEDS to signal the start of the calibration period:
+  digitalWrite(LED_AVERAGEBPM, HIGH);
+  digitalWrite(LED_OVERALLBPM, HIGH);
+  int calibrateMillis = millis();
 
-  //NEW
-  //Send some message to redDisplay? "Prss Dn"?
-  //    maximumDepth = (bpmPot.getRollingAverage() + smoothingValue); //Create a value for maximumDepth a little larger than the actual pot value.
-  // Used to scale pot distance for inches with map function
-  //    Serial.println("new maximumDepth= " + (String)maximumDepth);
-  //new
-  //Need a way to signal the operator to press, etc.  For now, just hard code it. (273)
-  //    if (startStopButton.wasPressed()) {
-  //      greenDisplay.clear();
-  //      greenDisplay.writeDisplay();  //NEW
+  // calibrate during the first five seconds
+  while (millis() - calibrateMillis < 5000) {
+    int sensorValue = analogRead(POT_PIN_BEATSPERMINUTE);
 
-  if (startStopButton.wasPressed()) {
 
-    GoToNextState();
+
+    // record the maximum sensor value
+    if (sensorValue > calibrateMaximumDepth) {
+      calibrateMaximumDepth = sensorValue;
+      Serial.println("Max = " + (String)calibrateMaximumDepth);
+    }
+
+    // record the minimum sensor value
+    if (sensorValue < calibrateMinimumDepth) {
+      calibrateMinimumDepth = sensorValue;
+      Serial.println("Min = " + (String)calibrateMinimumDepth);
+      Serial.println();
+    }
+
   }
 
-  //    }
+    Serial.println("Time's up!");
+    digitalWrite(LED_AVERAGEBPM, LOW);
+    digitalWrite(LED_OVERALLBPM, LOW);
+    Serial.println("Final Min = " + (String)calibrateMinimumDepth);
+    Serial.println("Final Max = " + (String)calibrateMaximumDepth);
+    GoToNextState();
+  
 }
+//NEW
+//Send some message to redDisplay? "Prss Dn"?
+//    maximumDepth = (bpmPot.getRollingAverage() + smoothingValue); //Create a value for maximumDepth a little larger than the actual pot value.
+// Used to scale pot distance for inches with map function
+//    Serial.println("new maximumDepth = " + (String)maximumDepth);
+//new
+//Need a way to signal the operator to press, etc.  For now, just hard code it. (273)
+//    if (startStopButton.wasPressed()) {
+//      greenDisplay.clear();
+//      greenDisplay.writeDisplay();  //NEW
+
+//  if (startStopButton.wasPressed()) {
+
+
+
+
+//    }
+
 
 
 
@@ -429,7 +463,7 @@ void loop() {
 */
 
 /* Notes from 8/12
-    Fixed overall BPM calcs
-    Removed overall BPM function
-    Added code for adding average and overall BPM LEDs.  Ready for hardware.
+  Fixed overall BPM calcs
+  Removed overall BPM function
+  Added code for adding average and overall BPM LEDs.  Ready for hardware.
 */
