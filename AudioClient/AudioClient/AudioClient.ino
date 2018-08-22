@@ -85,7 +85,7 @@ void loop ()
     }
     if (msg == INTRO_AND_MUSIC) {
       playcomplete("MuscPcA.wav");  // too slow (maybe 2nd time)
-      playfile("StynAlvC.wav");
+      playfile("StynAlvD.wav");
     }
     if (msg == PUSH_HARDER) {
       playcomplete("PshHrdrA.wav");  // too shallow

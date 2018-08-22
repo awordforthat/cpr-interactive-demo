@@ -88,11 +88,14 @@ int overallSeconds = 0;
 int upDistance = 0;
 int downDistance = 0;
 boolean previousDownWasShort = false;
+boolean previousUpWasShort = false;
 int shortUpStrokeCounter = 0;
 int distanceCounterBeats = 5;
 int overallBpmCount = 0;
 int feedbackMode = -1;
 int numCorrections = 0;
+int numBadDowns = 0;
+int numIntervalBeats = 0;
 boolean sentFeedbackLastTime = true;
 boolean sent75pctInfo = false;
 
@@ -114,23 +117,19 @@ const int AVERAGE_INTERVAL_SAMPLE_TIME = 5000;//How long between averaging and p
 const int BPM_CONVERT = (60 / (AVERAGE_INTERVAL_SAMPLE_TIME / 1000));
 const int MAX_NUM_SECONDS = 182;
 const int MIN_NUM_SECONDS = 15;
-const int MAX_NUM_CORRECTIONS = 3;
+const int MAX_NUM_CORRECTIONS = 2;
 const int MIN_ACCEPTABLE_BPM = 100;
+const int MIN_STROKE_DISTANCE = 5;
 
 
 
 //Variables for Calibrate state
+
 int maximumDepth = (350 / smoothingValue); //Eventually get this from a read of the bpm pot in the calibrate state.
 int calibrateMaximumDepth = 0;
 int calibrateMinimumDepth = 1023;
 
-boolean checkPaceProficiency(int averageBpm, int lowLimit) {
-  return averageBpm > lowLimit;
-}
 
-bool checkDepthProficiency() {
-  return true;
-}
 
 
 // the setup function runs once when you press reset or power the board
@@ -183,7 +182,7 @@ void GoToNextState()
 
 void UpdateSetup() {
   // gets the smoothed value from the time pot, then maps it into the min-max second range
-
+  // tiny change
   timeCountDown = ((int)map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS));
   playDuration = timeCountDown;
   handleStartTimeConvert();
@@ -195,7 +194,7 @@ void UpdateSetup() {
     greenDisplay.writeDisplay();
 
     previousDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
-
+Serial.println("previousDistanceValue = " + (String)previousDistanceValue);
     startDistanceValue = previousDistanceValue;
     averageIntervalStartTime = millis();
     overallBpmStartTime = millis();
@@ -203,7 +202,10 @@ void UpdateSetup() {
     overallBpmCounterStart = beatCounter;
     feedbackMode = LISTENING;
     numCorrections = 0;
-
+    previousDownWasShort = false;
+    previousUpWasShort = false;
+    numBadDowns = 0;
+    numIntervalBeats = 0;
     // read the adult/child button at the moment we exit this state and use that value to determine which mode runs in the play state
     adultMode = digitalRead(BUTTON_ADULTCHILD);  // 1= Adult, 0= Child
     if (adultMode == 1)
@@ -247,36 +249,33 @@ void UpdatePlay() {
     handleTimeUpdate(currentMillis);
     handleColonBlink(currentMillis);
 
-    //  int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
-    checkForDirectionChange(currentDistanceValue);
-    previousDistanceValue = currentDistanceValue;
 
-    if (millis() - overallBpmStartTime > 0.75 * playDuration * 1000 && !sent75pctInfo) {
+  if (((millis() - overallBpmStartTime) > (0.75 * playDuration * 1000)) && !sent75pctInfo) {
 
-      commChannel.sendMsg(TIRED, sizeof(TIRED));
-      sent75pctInfo = true;
-    }
+    commChannel.sendMsg(TIRED, sizeof(TIRED));
+    sent75pctInfo = true;
+  }
 
-    if (millis() >= (averageIntervalStartTime + AVERAGE_INTERVAL_SAMPLE_TIME)) {
-      // do our calculations
-      calculateAverageBPM();
-      // TODO: calculate distance here
+  if (millis() >= (averageIntervalStartTime + AVERAGE_INTERVAL_SAMPLE_TIME)) {
+    // do our calculations
+    calculateAverageBPM();
+    // TODO: calculate distance here
 
-      // how is the user doing?
-      bool hasGoodPace = checkPaceProficiency(averageBpm, MIN_ACCEPTABLE_BPM);
-      bool hasGoodDepth = checkDepthProficiency();
+    // how is the user doing?
+    bool hasGoodPace = checkPaceProficiency(averageBpm, MIN_ACCEPTABLE_BPM);
+    bool hasGoodDepth = checkDepthProficiency();
 
-      // evaluate feedback mode, changing if necessary
-      if (feedbackMode == LISTENING && !hasGoodPace || !hasGoodDepth) { // listening for a mistake. if there is one, kick into correction mode
-        if (!hasGoodDepth) {
-          feedbackMode = CHECK_FOR_DEPTH;
-          numCorrections = 0;
-        }
-        if (!hasGoodPace) {
-          feedbackMode = CHECK_FOR_PACE; // if both pace and depth are bad, this line will override the last one, which is what we want.
-          numCorrections = 0;
-        }
+    // evaluate feedback mode, changing if necessary
+    if (feedbackMode == LISTENING && !hasGoodPace || !hasGoodDepth) { // listening for a mistake. if there is one, kick into correction mode
+      if (!hasGoodDepth) {
+        feedbackMode = CHECK_FOR_DEPTH;
+        numCorrections = 0;
       }
+      if (!hasGoodPace) {
+        feedbackMode = CHECK_FOR_PACE; // if both pace and depth are bad, this line will override the last one, which is what we want.
+        numCorrections = 0;
+      }
+    }
 
       // give feedback if appropriate
       if (!sentFeedbackLastTime) {
@@ -305,6 +304,9 @@ void UpdatePlay() {
 
       // reset for next round
       averageIntervalStartTime = millis();
+    numBadDowns = 0;
+    numIntervalBeats = 0;
+
 
     }
 
@@ -413,6 +415,8 @@ void loop() {
   timePot.updatePot();
   bpmPot.updatePot();
 
+//  Serial.println((String)bpmPot.getRollingAverage() + " " + (String)bpmPot.getInstantaneousValue());
+
 
   bool error = false;
   switch (currentState) {
@@ -470,6 +474,13 @@ void loop() {
 
 /* Notes from 8/19
     added calibraton code to Calibration state.  Need to finish by using the calibration values.
+*/
+
+
+/*
+   Not getting 75% message. Added parens in line 240 and fixed.  Or Rx/Tx jumpers were loose.
+  On Util line 24 why add to numCorrections?  To prevent another iteration of this message?
+
 */
 
 
