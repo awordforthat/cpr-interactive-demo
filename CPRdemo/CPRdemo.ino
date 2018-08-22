@@ -129,7 +129,58 @@ int maximumDepth = (350 / smoothingValue); //Eventually get this from a read of 
 int calibrateMaximumDepth = 0;
 int calibrateMinimumDepth = 1023;
 
+void handleStartTimeConvert() {
+  hours = (timeCountDown - (timeCountDown % secsPerHour)) / secsPerHour;
+  minutes = ((timeCountDown - (timeCountDown % secsPerMinute) - (hours * secsPerHour))) / secsPerMinute; // secsPerMinute;
+  seconds = ((timeCountDown % secsPerHour) % secsPerMinute);
 
+  if (minutes == 0) {
+    if (seconds < 10) {
+      redDisplay.writeDigitNum(3, 0);
+    }
+  }
+
+  int displayValue = (minutes * 100) + seconds; //To be pushed to the display.
+
+
+  redDisplay.print(displayValue);
+  redDisplay.drawColon(true); // must go after print to display
+  redDisplay.writeDisplay();
+}
+
+void handleTimeUpdate(long currentMillis) {
+  if (currentMillis - previousMillis >= interval) {
+    // save the last time you updated the display
+    previousMillis = currentMillis;
+
+    //If one second has elapsed, do all these things
+    // Serial.println("Update display");
+    hours = (timeCountDown - (timeCountDown % secsPerHour)) / secsPerHour;
+    minutes = ((timeCountDown - (timeCountDown % secsPerMinute) - (hours * secsPerHour))) / secsPerMinute; // secsPerMinute;
+    seconds = ((timeCountDown % secsPerHour) % secsPerMinute);
+    if (minutes == 0) {
+      if (seconds < 10) {
+        redDisplay.writeDigitNum(3, 0);
+      }
+    }
+
+    int displayValue = (minutes * 100) + seconds; //To be pushed to the display.
+    redDisplay.print(displayValue);
+    redDisplay.writeDisplay();
+
+    timeCountDown--; //Decrement countdown counter
+  }
+}
+
+void handleColonBlink(long currentMillis) {
+  if (currentMillis - previousBlink >= BLINK_INTERVAL) {
+    // If a half second has elapsed, do all these things
+    previousBlink = currentMillis;
+    redDisplay.drawColon(drawDots);
+    redDisplay.writeDisplay();
+    drawDots = !drawDots; //invert drawDots state
+  }
+}
 
 
 // the setup function runs once when you press reset or power the board
@@ -194,7 +245,7 @@ void UpdateSetup() {
     greenDisplay.writeDisplay();
 
     previousDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
-Serial.println("previousDistanceValue = " + (String)previousDistanceValue);
+    Serial.println("previousDistanceValue = " + (String)previousDistanceValue);
     startDistanceValue = previousDistanceValue;
     averageIntervalStartTime = millis();
     overallBpmStartTime = millis();
@@ -250,32 +301,32 @@ void UpdatePlay() {
     handleColonBlink(currentMillis);
 
 
-  if (((millis() - overallBpmStartTime) > (0.75 * playDuration * 1000)) && !sent75pctInfo) {
+    if (((millis() - overallBpmStartTime) > (0.75 * playDuration * 1000)) && !sent75pctInfo) {
 
-    commChannel.sendMsg(TIRED, sizeof(TIRED));
-    sent75pctInfo = true;
-  }
-
-  if (millis() >= (averageIntervalStartTime + AVERAGE_INTERVAL_SAMPLE_TIME)) {
-    // do our calculations
-    calculateAverageBPM();
-    // TODO: calculate distance here
-
-    // how is the user doing?
-    bool hasGoodPace = checkPaceProficiency(averageBpm, MIN_ACCEPTABLE_BPM);
-    bool hasGoodDepth = checkDepthProficiency();
-
-    // evaluate feedback mode, changing if necessary
-    if (feedbackMode == LISTENING && !hasGoodPace || !hasGoodDepth) { // listening for a mistake. if there is one, kick into correction mode
-      if (!hasGoodDepth) {
-        feedbackMode = CHECK_FOR_DEPTH;
-        numCorrections = 0;
-      }
-      if (!hasGoodPace) {
-        feedbackMode = CHECK_FOR_PACE; // if both pace and depth are bad, this line will override the last one, which is what we want.
-        numCorrections = 0;
-      }
+      commChannel.sendMsg(TIRED, sizeof(TIRED));
+      sent75pctInfo = true;
     }
+
+    if (millis() >= (averageIntervalStartTime + AVERAGE_INTERVAL_SAMPLE_TIME)) {
+      // do our calculations
+      calculateAverageBPM();
+      // TODO: calculate distance here
+
+      // how is the user doing?
+      bool hasGoodPace = checkPaceProficiency(averageBpm, MIN_ACCEPTABLE_BPM);
+      bool hasGoodDepth = checkDepthProficiency();
+
+      // evaluate feedback mode, changing if necessary
+      if (feedbackMode == LISTENING && !hasGoodPace || !hasGoodDepth) { // listening for a mistake. if there is one, kick into correction mode
+        if (!hasGoodDepth) {
+          feedbackMode = CHECK_FOR_DEPTH;
+          numCorrections = 0;
+        }
+        if (!hasGoodPace) {
+          feedbackMode = CHECK_FOR_PACE; // if both pace and depth are bad, this line will override the last one, which is what we want.
+          numCorrections = 0;
+        }
+      }
 
       // give feedback if appropriate
       if (!sentFeedbackLastTime) {
@@ -304,8 +355,8 @@ void UpdatePlay() {
 
       // reset for next round
       averageIntervalStartTime = millis();
-    numBadDowns = 0;
-    numIntervalBeats = 0;
+      numBadDowns = 0;
+      numIntervalBeats = 0;
 
 
     }
@@ -415,7 +466,7 @@ void loop() {
   timePot.updatePot();
   bpmPot.updatePot();
 
-//  Serial.println((String)bpmPot.getRollingAverage() + " " + (String)bpmPot.getInstantaneousValue());
+  //  Serial.println((String)bpmPot.getRollingAverage() + " " + (String)bpmPot.getInstantaneousValue());
 
 
   bool error = false;
