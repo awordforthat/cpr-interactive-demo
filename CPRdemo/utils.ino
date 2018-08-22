@@ -14,10 +14,12 @@ void calculateAverageBPM() {
   averageBpmCounterStart = beatCounter;
 }
 
-boolean checkPaceProficiency(int averageBpm, int lowLimit) {
+boolean checkPaceProficiencySlow(int averageBpm, int lowLimit) {
   return averageBpm > lowLimit;
 }
-
+boolean checkPaceProficiencyFast(int averageBpm, int highLimit) {
+  return averageBpm < highLimit;
+}
 bool checkDepthProficiency() {
   // how many beats did we expect during this interval?
 
@@ -27,7 +29,7 @@ bool checkDepthProficiency() {
   return (numBadDowns / numIntervalBeats) < 0.2;
 }
 
-void deliverFeedback(bool hasGoodPace, bool hasGoodDepth) {
+void deliverFeedback(bool hasGoodPaceFast, bool hasGoodPaceSlow, bool hasGoodDepth) {
   switch (feedbackMode) {
     case LISTENING:
       if (numCorrections == 0)
@@ -37,8 +39,13 @@ void deliverFeedback(bool hasGoodPace, bool hasGoodDepth) {
       }
 
       break;
-    case CHECK_FOR_PACE:
-      if (!hasGoodPace) {
+    case CHECK_FOR_PACE_SLOW:
+      if (!hasGoodPaceSlow) {
+        deliverPaceFeedback();
+      }
+      break;
+    case CHECK_FOR_PACE_FAST:
+      if (!hasGoodPaceFast) {
         deliverPaceFeedback();
       }
       break;
@@ -56,7 +63,7 @@ void deliverPaceFeedback() {
 
   if (numCorrections < MAX_NUM_CORRECTIONS) {
 
-    if (numCorrections < 1) {
+    if (numCorrections < 1 && !hasGoodPaceFast) {
       commChannel.sendMsg(LITTLE_FASTER, sizeof(LITTLE_FASTER));
       Serial.println("Little faster");
     }
@@ -196,9 +203,9 @@ void checkForDirectionChange(int currentDistanceValue) {
 
 
 
-  //  if (beatCounter % 3 == 0) {
-  //        averageDownDistance = downDistance / 3;
-  //    if (averageDownDistance < (maximumDepth - 50)) {
-  //      Serial.println("Press deeper");
-  //      downDistance = 0;
-  //  }
+//  if (beatCounter % 3 == 0) {
+//        averageDownDistance = downDistance / 3;
+//    if (averageDownDistance < (maximumDepth - 50)) {
+//      Serial.println("Press deeper");
+//      downDistance = 0;
+//  }

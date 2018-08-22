@@ -32,7 +32,8 @@ enum StateID {
 };
 
 enum AudioFeedbackMode {
-  CHECK_FOR_PACE, // user has made a pace mistake. Coach them through it until mistake is resolved.
+  CHECK_FOR_PACE_SLOW, // user is going at too slow a pace. Coach them through it until mistake is resolved.
+  CHECK_FOR_PACE_FAST, // user is going at too fast a pace. Coach them through it until mistake is resolved.
   CHECK_FOR_DEPTH, // user has made a depth mistake. Coach them through it until mistake is resolved.
   LISTENING // waiting for something to go wrong to kick us into pace or depth mode
 };
@@ -119,6 +120,7 @@ const int MAX_NUM_SECONDS = 182;
 const int MIN_NUM_SECONDS = 15;
 const int MAX_NUM_CORRECTIONS = 2;
 const int MIN_ACCEPTABLE_BPM = 100;
+const int MAX_ACCEPTABLE_BPM = 120;
 const int MIN_STROKE_DISTANCE = 5;
 
 
@@ -314,32 +316,40 @@ void UpdatePlay() {
       // TODO: calculate distance here
 
       // how is the user doing?
-      bool hasGoodPace = checkPaceProficiency(averageBpm, MIN_ACCEPTABLE_BPM);
+      bool hasGoodPaceSlow = checkPaceProficiencySlow(averageBpm, MIN_ACCEPTABLE_BPM);
+      bool hasGoodPaceFast = checkPaceProficiencyFast(averageBpm, MAX_ACCEPTABLE_BPM);
       bool hasGoodDepth = checkDepthProficiency();
 
       // evaluate feedback mode, changing if necessary
-      if (feedbackMode == LISTENING && !hasGoodPace || !hasGoodDepth) { // listening for a mistake. if there is one, kick into correction mode
+      if (feedbackMode == LISTENING && !hasGoodPaceFast || !hasGoodPaceSlow || !hasGoodDepth) { // listening for a mistake. if there is one, kick into correction mode
         if (!hasGoodDepth) {
           feedbackMode = CHECK_FOR_DEPTH;
           numCorrections = 0;
         }
-        if (!hasGoodPace) {
-          feedbackMode = CHECK_FOR_PACE; // if both pace and depth are bad, this line will override the last one, which is what we want.
+        if (!hasGoodPaceSlow) {
+          feedbackMode = CHECK_FOR_PACE_SLOW; // if both pace and depth are bad, this line will override the last one, which is what we want.
           numCorrections = 0;
         }
       }
 
       // give feedback if appropriate
       if (!sentFeedbackLastTime) {
-        deliverFeedback(hasGoodPace, hasGoodDepth);
+        deliverFeedback(hasGoodPaceFast, hasGoodPaceSlow, hasGoodDepth);
       }
       sentFeedbackLastTime = !sentFeedbackLastTime;
 
 
       // if the user has corrected their mistake, kick back into listening mode
       switch (feedbackMode) {
-        case CHECK_FOR_PACE:
-          if (hasGoodPace) {
+        case CHECK_FOR_PACE_SLOW:
+          if (hasGoodPaceSlow) {
+            commChannel.sendMsg(RIGHT_SPEED, sizeof(RIGHT_SPEED));
+            feedbackMode = LISTENING;
+            numCorrections = 0;
+          }
+          break;
+        case CHECK_FOR_PACE_FAST:
+          if (hasGoodPaceFast) {
             commChannel.sendMsg(RIGHT_SPEED, sizeof(RIGHT_SPEED));
             feedbackMode = LISTENING;
             numCorrections = 0;
@@ -434,8 +444,8 @@ void UpdateCalibration() {
   digitalWrite(LED_OVERALLBPM, LOW);
   Serial.println("Final Min = " + (String)calibrateMinimumDepth);
   Serial.println("Final Max = " + (String)calibrateMaximumDepth);
-//  minimumDepth = calibrateMinimumDepth; Check with Emily before implementing
-//  maximumDepth = calibrateMaximumDepth;
+  //  minimumDepth = calibrateMinimumDepth; Check with Emily before implementing
+  //  maximumDepth = calibrateMaximumDepth;
   GoToNextState();
 
 }
