@@ -111,7 +111,7 @@ const byte INTRO_AND_MUSIC [] = "5";
 const byte PUSH_HARDER [] = "6";
 const byte MED_HELP [] = "7";
 const byte TIRED [] = "8";
-const byte MUSIC_ONLY [] = "9";
+const byte LITTLE_SLOWER [] = "9";
 
 const int AVERAGE_INTERVAL_SAMPLE_TIME = 5000;//How long between averaging and postings of averageBpm, in millis().
 const int BPM_CONVERT = (60 / (AVERAGE_INTERVAL_SAMPLE_TIME / 1000));
@@ -126,6 +126,7 @@ const int MIN_STROKE_DISTANCE = 5;
 //Variables for Calibrate state
 
 int maximumDepth = (350 / smoothingValue); //Eventually get this from a read of the bpm pot in the calibrate state.
+//int minimumDepth = 0; Will we use this?
 int calibrateMaximumDepth = 0;
 int calibrateMinimumDepth = 1023;
 
@@ -433,6 +434,8 @@ void UpdateCalibration() {
   digitalWrite(LED_OVERALLBPM, LOW);
   Serial.println("Final Min = " + (String)calibrateMinimumDepth);
   Serial.println("Final Max = " + (String)calibrateMaximumDepth);
+//  minimumDepth = calibrateMinimumDepth; Check with Emily before implementing
+//  maximumDepth = calibrateMaximumDepth;
   GoToNextState();
 
 }

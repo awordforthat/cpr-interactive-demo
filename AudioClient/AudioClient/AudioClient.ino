@@ -19,7 +19,7 @@ const byte INTRO_AND_MUSIC [] = "5";
 const byte PUSH_HARDER [] = "6";
 const byte MED_HELP [] = "7";
 const byte TIRED [] = "8";
-const byte MUSIC_ONLY [] = "9";
+const byte LITTLE_SLOWER [] = "9";
 /*
    Define macro to put error messages in flash memory
 */
@@ -96,8 +96,8 @@ void loop ()
     if (msg == TIRED) {
       playcomplete("TiredA.wav"); // 75% through duration of play
     }
-    if (msg == MUSIC_ONLY) {
-      playfile("StynAlvA.wav"); // music only, no intro
+    if (msg == LITTLE_SLOWER) {
+      playfile("LtlSlwrA.wav"); // too fast
     }
 
 
