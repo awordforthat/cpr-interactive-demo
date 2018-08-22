@@ -11,7 +11,7 @@
 
 
 #define POT_PIN_TIME A0 // Input from TIME pot
-#define POT_PIN_BEATSPERMINUTE A1 // Input from BEATSPERMINUTE pot
+#define POT_PIN_BEATSPERMINUTE A2 // Input from BEATSPERMINUTE pot
 #define BUTTON_STARTSTOP 2 // Set pin 2 for StartStop button
 #define BUTTON_ADULTCHILD 4 // Set pin 4 for AdultChild button
 #define NUM_SAMPLES 10
@@ -122,11 +122,12 @@ const int MIN_ACCEPTABLE_BPM = 100;
 const int MIN_STROKE_DISTANCE = 5;
 
 
-//NEW
-//Variables for Calibrate state
-int maximumDepth = 32; //(350 / smoothingValue); //Eventually get this from a read of the bpm pot in the calibrate state.
 
-//new
+//Variables for Calibrate state
+
+int maximumDepth = (350 / smoothingValue); //Eventually get this from a read of the bpm pot in the calibrate state.
+int calibrateMaximumDepth = 0;
+int calibrateMinimumDepth = 1023;
 
 
 
@@ -225,19 +226,29 @@ Serial.println("previousDistanceValue = " + (String)previousDistanceValue);
 
 
 void UpdatePlay() {
-  if (seconds < 10) {
-    redDisplay.writeDigitNum(3, 0);
-    redDisplay.writeDisplay();
-  }
-
-  long currentMillis = millis(); //Record current time (used in calculating what to display on each of the 7-segs)
-
-  handleTimeUpdate(currentMillis);
-  handleColonBlink(currentMillis);
-
   int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
   checkForDirectionChange(currentDistanceValue);
   previousDistanceValue = currentDistanceValue;
+  if (beatCounter == 0) {
+    redDisplay.blinkRate(1);
+    redDisplay.writeDisplay();
+
+    //don't do nothin'
+  }
+  else {
+    redDisplay.blinkRate(0);
+    redDisplay.writeDisplay();
+
+    if (seconds < 10) {
+      redDisplay.writeDigitNum(3, 0);
+      redDisplay.writeDisplay();
+    }
+
+    long currentMillis = millis(); //Record current time (used in calculating what to display on each of the 7-segs)
+
+    handleTimeUpdate(currentMillis);
+    handleColonBlink(currentMillis);
+
 
   if (((millis() - overallBpmStartTime) > (0.75 * playDuration * 1000)) && !sent75pctInfo) {
 
@@ -266,53 +277,55 @@ void UpdatePlay() {
       }
     }
 
-    // give feedback if appropriate
-    if (!sentFeedbackLastTime) {
-      deliverFeedback(hasGoodPace, hasGoodDepth);
-    }
-    sentFeedbackLastTime = !sentFeedbackLastTime;
+      // give feedback if appropriate
+      if (!sentFeedbackLastTime) {
+        deliverFeedback(hasGoodPace, hasGoodDepth);
+      }
+      sentFeedbackLastTime = !sentFeedbackLastTime;
 
 
-    // if the user has corrected their mistake, kick back into listening mode
-    switch (feedbackMode) {
-      case CHECK_FOR_PACE:
-        if (hasGoodPace) {
-          commChannel.sendMsg(RIGHT_SPEED, sizeof(RIGHT_SPEED));
-          feedbackMode = LISTENING;
-          numCorrections = 0;
-        }
-        break;
-      case CHECK_FOR_DEPTH:
-        if (hasGoodDepth) {
-          commChannel.sendMsg(GOOD_COMP, sizeof(GOOD_COMP));
-          feedbackMode = LISTENING;
-          numCorrections = 0;
-        }
-        break;
-    }
+      // if the user has corrected their mistake, kick back into listening mode
+      switch (feedbackMode) {
+        case CHECK_FOR_PACE:
+          if (hasGoodPace) {
+            commChannel.sendMsg(RIGHT_SPEED, sizeof(RIGHT_SPEED));
+            feedbackMode = LISTENING;
+            numCorrections = 0;
+          }
+          break;
+        case CHECK_FOR_DEPTH:
+          if (hasGoodDepth) {
+            commChannel.sendMsg(GOOD_COMP, sizeof(GOOD_COMP));
+            feedbackMode = LISTENING;
+            numCorrections = 0;
+          }
+          break;
+      }
 
-    // reset for next round
-    averageIntervalStartTime = millis();
+      // reset for next round
+      averageIntervalStartTime = millis();
     numBadDowns = 0;
     numIntervalBeats = 0;
 
-  }
+
+    }
 
 
 
-  if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
-    overallBpmCount = beatCounter - overallBpmCounterStart;
-    overallSeconds = (millis() - overallBpmStartTime) / 1000;
-    digitalWrite(LED_AVERAGEBPM, LOW);
-    digitalWrite(LED_OVERALLBPM, HIGH);
+    if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
+      overallBpmCount = beatCounter - overallBpmCounterStart;
+      overallSeconds = (millis() - overallBpmStartTime) / 1000;
+      digitalWrite(LED_AVERAGEBPM, LOW);
+      digitalWrite(LED_OVERALLBPM, HIGH);
 
-    greenDisplay.print((overallBpmCount * secsPerMinute) / overallSeconds);
-    greenDisplay.writeDigitRaw (2, chrDot4); //Bottom left dot
-    greenDisplay.writeDisplay();
+      greenDisplay.print((overallBpmCount * secsPerMinute) / overallSeconds);
+      greenDisplay.writeDigitRaw (2, chrDot4); //Bottom left dot
+      greenDisplay.writeDisplay();
 
-    commChannel.sendMsg(MED_HELP, sizeof(MED_HELP));
-    GoToNextState();
+      commChannel.sendMsg(MED_HELP, sizeof(MED_HELP));
+      GoToNextState();
 
+    }
   }
 }
 
@@ -338,25 +351,58 @@ void UpdateCalibration() {
   redDisplay.writeDigitRaw(2, chrDot3);
   redDisplay.writeDisplay();
 
+  // turn on LEDS to signal the start of the calibration period:
+  digitalWrite(LED_AVERAGEBPM, HIGH);
+  digitalWrite(LED_OVERALLBPM, HIGH);
+  int calibrateMillis = millis();
 
-  //NEW
-  //Send some message to redDisplay? "Prss Dn"?
-  //    maximumDepth = (bpmPot.getRollingAverage() + smoothingValue); //Create a value for maximumDepth a little larger than the actual pot value.
-  // Used to scale pot distance for inches with map function
-  //    Serial.println("new maximumDepth= " + (String)maximumDepth);
-  //new
-  //Need a way to signal the operator to press, etc.  For now, just hard code it. (273)
-  //    if (startStopButton.wasPressed()) {
-  //      greenDisplay.clear();
-  //      greenDisplay.writeDisplay();  //NEW
+  // calibrate during the first five seconds
+  while (millis() - calibrateMillis < 5000) {
+    int sensorValue = analogRead(POT_PIN_BEATSPERMINUTE);
 
-  if (startStopButton.wasPressed()) {
 
-    GoToNextState();
+
+    // record the maximum sensor value
+    if (sensorValue > calibrateMaximumDepth) {
+      calibrateMaximumDepth = sensorValue;
+      Serial.println("Max = " + (String)calibrateMaximumDepth);
+    }
+
+    // record the minimum sensor value
+    if (sensorValue < calibrateMinimumDepth) {
+      calibrateMinimumDepth = sensorValue;
+      Serial.println("Min = " + (String)calibrateMinimumDepth);
+      Serial.println();
+    }
+
   }
 
-  //    }
+  Serial.println("Time's up!");
+  digitalWrite(LED_AVERAGEBPM, LOW);
+  digitalWrite(LED_OVERALLBPM, LOW);
+  Serial.println("Final Min = " + (String)calibrateMinimumDepth);
+  Serial.println("Final Max = " + (String)calibrateMaximumDepth);
+  GoToNextState();
+
 }
+//NEW
+//Send some message to redDisplay? "Prss Dn"?
+//    maximumDepth = (bpmPot.getRollingAverage() + smoothingValue); //Create a value for maximumDepth a little larger than the actual pot value.
+// Used to scale pot distance for inches with map function
+//    Serial.println("new maximumDepth = " + (String)maximumDepth);
+//new
+//Need a way to signal the operator to press, etc.  For now, just hard code it. (273)
+//    if (startStopButton.wasPressed()) {
+//      greenDisplay.clear();
+//      greenDisplay.writeDisplay();  //NEW
+
+//  if (startStopButton.wasPressed()) {
+
+
+
+
+//    }
+
 
 
 
@@ -421,14 +467,20 @@ void loop() {
 */
 
 /* Notes from 8/12
-    Fixed overall BPM calcs
-    Removed overall BPM function
-    Added code for adding average and overall BPM LEDs.  Ready for hardware.
+  Fixed overall BPM calcs
+  Removed overall BPM function
+  Added code for adding average and overall BPM LEDs.  Ready for hardware.
 */
+
+/* Notes from 8/19
+    added calibraton code to Calibration state.  Need to finish by using the calibration values.
+*/
+
 
 /*
    Not getting 75% message. Added parens in line 240 and fixed.  Or Rx/Tx jumpers were loose.
   On Util line 24 why add to numCorrections?  To prevent another iteration of this message?
 
 */
+
 
