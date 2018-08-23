@@ -14,6 +14,25 @@ void calculateAverageBPM() {
   averageBpmCounterStart = beatCounter;
 }
 
+void handleStartTimeConvert() {
+  hours = (timeCountDown - (timeCountDown % secsPerHour)) / secsPerHour;
+  minutes = ((timeCountDown - (timeCountDown % secsPerMinute) - (hours * secsPerHour))) / secsPerMinute; // secsPerMinute;
+  seconds = ((timeCountDown % secsPerHour) % secsPerMinute);
+
+  if (minutes == 0) {
+    if (seconds < 10) {
+      redDisplay.writeDigitNum(3, 0);
+    }
+  }
+
+  int displayValue = (minutes * 100) + seconds; //To be pushed to the display.
+
+
+  redDisplay.print(displayValue);
+  redDisplay.drawColon(true); // must go after print to display
+  redDisplay.writeDisplay();
+}
+
 boolean checkPaceProficiencySlow(int averageBpm, int lowLimit) {
   return averageBpm > lowLimit;
 }
@@ -29,7 +48,7 @@ bool checkDepthProficiency() {
   return (numBadDowns / numIntervalBeats) < 0.2;
 }
 
-void deliverFeedback(bool hasGoodPaceFast, bool hasGoodPaceSlow, bool hasGoodDepth) {
+void deliverFeedback(bool goingFastEnough, boolean goingSlowEnough, bool hasGoodDepth) {
   switch (feedbackMode) {
     case LISTENING:
       if (numCorrections == 0)
@@ -40,13 +59,13 @@ void deliverFeedback(bool hasGoodPaceFast, bool hasGoodPaceSlow, bool hasGoodDep
 
       break;
     case CHECK_FOR_PACE_SLOW:
-      if (!hasGoodPaceSlow) {
-        deliverPaceFeedback();
+      if (!goingFastEnough) {
+        deliverPaceFeedback( true); // speed up!
       }
       break;
     case CHECK_FOR_PACE_FAST:
-      if (!hasGoodPaceFast) {
-        deliverPaceFeedback();
+      if (!goingSlowEnough) {
+        deliverPaceFeedback( false);  // slow down!
       }
       break;
     case CHECK_FOR_DEPTH:
@@ -59,18 +78,31 @@ void deliverFeedback(bool hasGoodPaceFast, bool hasGoodPaceSlow, bool hasGoodDep
   }
 }
 
-void deliverPaceFeedback() {
+void deliverPaceFeedback( bool shouldSpeedUp) {
 
   if (numCorrections < MAX_NUM_CORRECTIONS) {
 
-    if (numCorrections < 1 && !hasGoodPaceFast) {
-      commChannel.sendMsg(LITTLE_FASTER, sizeof(LITTLE_FASTER));
-      Serial.println("Little faster");
+    if (shouldSpeedUp) { // too slow! go faster
+      if (numCorrections < 1 ) {
+        commChannel.sendMsg(LITTLE_FASTER, sizeof(LITTLE_FASTER));
+        Serial.println("Little faster");
+      }
+      else {
+        commChannel.sendMsg(INTRO_AND_MUSIC, sizeof(INTRO_AND_MUSIC));
+        Serial.println("Play music");
+      }
+    }
+    else { // too fast! go a little slower
+      if (numCorrections < 1 ) {
+      commChannel.sendMsg(LITTLE_SLOWER, sizeof(LITTLE_SLOWER));
+      Serial.println("Little slower");
     }
     else {
       commChannel.sendMsg(INTRO_AND_MUSIC, sizeof(INTRO_AND_MUSIC));
       Serial.println("Play music");
     }
+    }
+
     numCorrections++;
   }
 }

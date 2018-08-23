@@ -124,7 +124,6 @@ const int MAX_ACCEPTABLE_BPM = 120;
 const int MIN_STROKE_DISTANCE = 5;
 
 
-
 //Variables for Calibrate state
 
 int maximumDepth = (350 / smoothingValue); //Eventually get this from a read of the bpm pot in the calibrate state.
@@ -132,24 +131,7 @@ int maximumDepth = (350 / smoothingValue); //Eventually get this from a read of 
 int calibrateMaximumDepth = 0;
 int calibrateMinimumDepth = 1023;
 
-void handleStartTimeConvert() {
-  hours = (timeCountDown - (timeCountDown % secsPerHour)) / secsPerHour;
-  minutes = ((timeCountDown - (timeCountDown % secsPerMinute) - (hours * secsPerHour))) / secsPerMinute; // secsPerMinute;
-  seconds = ((timeCountDown % secsPerHour) % secsPerMinute);
 
-  if (minutes == 0) {
-    if (seconds < 10) {
-      redDisplay.writeDigitNum(3, 0);
-    }
-  }
-
-  int displayValue = (minutes * 100) + seconds; //To be pushed to the display.
-
-
-  redDisplay.print(displayValue);
-  redDisplay.drawColon(true); // must go after print to display
-  redDisplay.writeDisplay();
-}
 
 void handleTimeUpdate(long currentMillis) {
   if (currentMillis - previousMillis >= interval) {
@@ -316,8 +298,8 @@ void UpdatePlay() {
       // TODO: calculate distance here
 
       // how is the user doing?
-      bool hasGoodPaceSlow = checkPaceProficiencySlow(averageBpm, MIN_ACCEPTABLE_BPM);
-      bool hasGoodPaceFast = checkPaceProficiencyFast(averageBpm, MAX_ACCEPTABLE_BPM);
+      bool hasGoodPaceSlow = checkPaceProficiencySlow(averageBpm, MIN_ACCEPTABLE_BPM); // is pace fast enough? (i.e., faster than MIN)
+      bool hasGoodPaceFast = checkPaceProficiencyFast(averageBpm, MAX_ACCEPTABLE_BPM); // is pace slow enough? (i.e., slower than MAX)
       bool hasGoodDepth = checkDepthProficiency();
 
       // evaluate feedback mode, changing if necessary
@@ -334,7 +316,7 @@ void UpdatePlay() {
 
       // give feedback if appropriate
       if (!sentFeedbackLastTime) {
-        deliverFeedback(hasGoodPaceFast, hasGoodPaceSlow, hasGoodDepth);
+        deliverFeedback(hasGoodPaceSlow, hasGoodPaceSlow, hasGoodDepth);
       }
       sentFeedbackLastTime = !sentFeedbackLastTime;
 
