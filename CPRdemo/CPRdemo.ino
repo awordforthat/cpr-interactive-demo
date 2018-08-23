@@ -6,6 +6,7 @@
 #include "Adafruit_LEDBackpack.h"
 #include "Button.cpp"
 #include "Potentiometer.cpp";
+#include <Adafruit_NeoPixel.h>
 #include <RS485_non_blocking.h>
 #include <Wire.h>
 
@@ -45,7 +46,7 @@ size_t fWrite(const byte what) {
 
 // variables common to all states
 StateID currentState = SETUP;
-bool includeCalibration = false;
+bool includeCalibration = true;
 bool adultMode = true;
 int smoothingValue = 15;
 Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
@@ -265,112 +266,112 @@ void UpdatePlay() {
   int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
   checkForDirectionChange(currentDistanceValue);
   previousDistanceValue = currentDistanceValue;
-  if (beatCounter == 0) {
-    redDisplay.blinkRate(1);
-    redDisplay.writeDisplay();
+  //  if (beatCounter == 0) {
+  //    redDisplay.blinkRate(1);
+  //    redDisplay.writeDisplay();
+  //
+  //    //don't do nothin'
+  //  }
+  //  else {
+  //    redDisplay.blinkRate(0);
+  //    redDisplay.writeDisplay();
 
-    //don't do nothin'
+  if (seconds < 10) {
+    redDisplay.writeDigitNum(3, 0);
+    redDisplay.writeDisplay();
   }
-  else {
-    redDisplay.blinkRate(0);
-    redDisplay.writeDisplay();
 
-    if (seconds < 10) {
-      redDisplay.writeDigitNum(3, 0);
-      redDisplay.writeDisplay();
+  long currentMillis = millis(); //Record current time (used in calculating what to display on each of the 7-segs)
+
+  handleTimeUpdate(currentMillis);
+  handleColonBlink(currentMillis);
+
+
+  if (((millis() - overallBpmStartTime) > (0.75 * playDuration * 1000)) && !sent75pctInfo) {
+
+    commChannel.sendMsg(TIRED, sizeof(TIRED));
+    sent75pctInfo = true;
+  }
+
+  if (millis() >= (averageIntervalStartTime + AVERAGE_INTERVAL_SAMPLE_TIME)) {
+    // do our calculations
+    calculateAverageBPM();
+    // TODO: calculate distance here
+
+    // how is the user doing?
+    bool hasGoodPaceSlow = checkPaceProficiencySlow(averageBpm, MIN_ACCEPTABLE_BPM); // is pace fast enough? (i.e., faster than MIN)
+    bool hasGoodPaceFast = checkPaceProficiencyFast(averageBpm, MAX_ACCEPTABLE_BPM); // is pace slow enough? (i.e., slower than MAX)
+    bool hasGoodDepth = checkDepthProficiency();
+
+    // evaluate feedback mode, changing if necessary
+    if (feedbackMode == LISTENING && !hasGoodPaceFast || !hasGoodPaceSlow || !hasGoodDepth) { // listening for a mistake. if there is one, kick into correction mode
+      if (!hasGoodDepth) {
+        feedbackMode = CHECK_FOR_DEPTH;
+        numCorrections = 0;
+      }
+      if (!hasGoodPaceSlow) {
+        feedbackMode = CHECK_FOR_PACE_SLOW; // if both pace and depth are bad, this line will override the last one, which is what we want.
+        numCorrections = 0;
+      }
     }
 
-    long currentMillis = millis(); //Record current time (used in calculating what to display on each of the 7-segs)
-
-    handleTimeUpdate(currentMillis);
-    handleColonBlink(currentMillis);
-
-
-    if (((millis() - overallBpmStartTime) > (0.75 * playDuration * 1000)) && !sent75pctInfo) {
-
-      commChannel.sendMsg(TIRED, sizeof(TIRED));
-      sent75pctInfo = true;
+    // give feedback if appropriate
+    if (!sentFeedbackLastTime) {
+      deliverFeedback(hasGoodPaceSlow, hasGoodPaceSlow, hasGoodDepth);
     }
+    sentFeedbackLastTime = !sentFeedbackLastTime;
 
-    if (millis() >= (averageIntervalStartTime + AVERAGE_INTERVAL_SAMPLE_TIME)) {
-      // do our calculations
-      calculateAverageBPM();
-      // TODO: calculate distance here
 
-      // how is the user doing?
-      bool hasGoodPaceSlow = checkPaceProficiencySlow(averageBpm, MIN_ACCEPTABLE_BPM); // is pace fast enough? (i.e., faster than MIN)
-      bool hasGoodPaceFast = checkPaceProficiencyFast(averageBpm, MAX_ACCEPTABLE_BPM); // is pace slow enough? (i.e., slower than MAX)
-      bool hasGoodDepth = checkDepthProficiency();
-
-      // evaluate feedback mode, changing if necessary
-      if (feedbackMode == LISTENING && !hasGoodPaceFast || !hasGoodPaceSlow || !hasGoodDepth) { // listening for a mistake. if there is one, kick into correction mode
-        if (!hasGoodDepth) {
-          feedbackMode = CHECK_FOR_DEPTH;
+    // if the user has corrected their mistake, kick back into listening mode
+    switch (feedbackMode) {
+      case CHECK_FOR_PACE_SLOW:
+        if (hasGoodPaceSlow) {
+          commChannel.sendMsg(RIGHT_SPEED, sizeof(RIGHT_SPEED));
+          feedbackMode = LISTENING;
           numCorrections = 0;
         }
-        if (!hasGoodPaceSlow) {
-          feedbackMode = CHECK_FOR_PACE_SLOW; // if both pace and depth are bad, this line will override the last one, which is what we want.
+        break;
+      case CHECK_FOR_PACE_FAST:
+        if (hasGoodPaceFast) {
+          commChannel.sendMsg(RIGHT_SPEED, sizeof(RIGHT_SPEED));
+          feedbackMode = LISTENING;
           numCorrections = 0;
         }
-      }
-
-      // give feedback if appropriate
-      if (!sentFeedbackLastTime) {
-        deliverFeedback(hasGoodPaceSlow, hasGoodPaceSlow, hasGoodDepth);
-      }
-      sentFeedbackLastTime = !sentFeedbackLastTime;
-
-
-      // if the user has corrected their mistake, kick back into listening mode
-      switch (feedbackMode) {
-        case CHECK_FOR_PACE_SLOW:
-          if (hasGoodPaceSlow) {
-            commChannel.sendMsg(RIGHT_SPEED, sizeof(RIGHT_SPEED));
-            feedbackMode = LISTENING;
-            numCorrections = 0;
-          }
-          break;
-        case CHECK_FOR_PACE_FAST:
-          if (hasGoodPaceFast) {
-            commChannel.sendMsg(RIGHT_SPEED, sizeof(RIGHT_SPEED));
-            feedbackMode = LISTENING;
-            numCorrections = 0;
-          }
-          break;
-        case CHECK_FOR_DEPTH:
-          if (hasGoodDepth) {
-            commChannel.sendMsg(GOOD_COMP, sizeof(GOOD_COMP));
-            feedbackMode = LISTENING;
-            numCorrections = 0;
-          }
-          break;
-      }
-
-      // reset for next round
-      averageIntervalStartTime = millis();
-      numBadDowns = 0;
-      numIntervalBeats = 0;
-
-
+        break;
+      case CHECK_FOR_DEPTH:
+        if (hasGoodDepth) {
+          commChannel.sendMsg(GOOD_COMP, sizeof(GOOD_COMP));
+          feedbackMode = LISTENING;
+          numCorrections = 0;
+        }
+        break;
     }
 
+    // reset for next round
+    averageIntervalStartTime = millis();
+    numBadDowns = 0;
+    numIntervalBeats = 0;
 
 
-    if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
-      overallBpmCount = beatCounter - overallBpmCounterStart;
-      overallSeconds = (millis() - overallBpmStartTime) / 1000;
-      digitalWrite(LED_AVERAGEBPM, LOW);
-      digitalWrite(LED_OVERALLBPM, HIGH);
-
-      greenDisplay.print((overallBpmCount * secsPerMinute) / overallSeconds);
-      greenDisplay.writeDigitRaw (2, chrDot4); //Bottom left dot
-      greenDisplay.writeDisplay();
-
-      commChannel.sendMsg(MED_HELP, sizeof(MED_HELP));
-      GoToNextState();
-
-    }
   }
+
+
+
+  if (startStopButton.wasPressed() || (timeCountDown + 1 == 0)) {
+    overallBpmCount = beatCounter - overallBpmCounterStart;
+    overallSeconds = (millis() - overallBpmStartTime) / 1000;
+    digitalWrite(LED_AVERAGEBPM, LOW);
+    digitalWrite(LED_OVERALLBPM, HIGH);
+
+    greenDisplay.print((overallBpmCount * secsPerMinute) / overallSeconds);
+    greenDisplay.writeDigitRaw (2, chrDot4); //Bottom left dot
+    greenDisplay.writeDisplay();
+
+    commChannel.sendMsg(MED_HELP, sizeof(MED_HELP));
+    GoToNextState();
+
+  }
+
 }
 
 
@@ -403,7 +404,6 @@ void UpdateCalibration() {
   // calibrate during the first five seconds
   while (millis() - calibrateMillis < 5000) {
     int sensorValue = analogRead(POT_PIN_BEATSPERMINUTE);
-
 
 
     // record the maximum sensor value

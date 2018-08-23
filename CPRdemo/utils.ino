@@ -36,9 +36,11 @@ void handleStartTimeConvert() {
 boolean checkPaceProficiencySlow(int averageBpm, int lowLimit) {
   return averageBpm > lowLimit;
 }
+
 boolean checkPaceProficiencyFast(int averageBpm, int highLimit) {
   return averageBpm < highLimit;
 }
+
 bool checkDepthProficiency() {
   // how many beats did we expect during this interval?
 
@@ -94,13 +96,13 @@ void deliverPaceFeedback( bool shouldSpeedUp) {
     }
     else { // too fast! go a little slower
       if (numCorrections < 1 ) {
-      commChannel.sendMsg(LITTLE_SLOWER, sizeof(LITTLE_SLOWER));
-      Serial.println("Little slower");
-    }
-    else {
-      commChannel.sendMsg(INTRO_AND_MUSIC, sizeof(INTRO_AND_MUSIC));
-      Serial.println("Play music");
-    }
+        commChannel.sendMsg(TIRED, sizeof(TIRED));
+        Serial.println("Little slower");
+      }
+      else {
+        commChannel.sendMsg(INTRO_AND_MUSIC, sizeof(INTRO_AND_MUSIC));
+        Serial.println("Play music");
+      }
     }
 
     numCorrections++;
@@ -122,11 +124,13 @@ void checkForDirectionChange(int currentDistanceValue) {
   // get the incremental distance that the pot has traveled this loop()
   int deltaDistance = abs(currentDistanceValue - previousDistanceValue);
 
+
   // no matter what, record that we've moved either up or down, independent of whether we've changed direction
   if (dirPlus) {
 
     upDistance += deltaDistance;
-
+    //    Serial.println("deltaDistance " + (String)deltaDistance);
+    //    Serial.println("upDistance is " + (String)upDistance);
   }
   else if (!dirPlus) {
 
@@ -153,7 +157,7 @@ void checkForDirectionChange(int currentDistanceValue) {
     if (downDistance < (maximumDepth - 1)) {
       if (!(downDistance == 1)) {
         previousDownWasShort = true;
-        //        Serial.println("Down was short"); //This will call an audio file later
+        //        Serial.println("Down was short");
       }
       else {
         spuriousRead = true;
@@ -161,8 +165,6 @@ void checkForDirectionChange(int currentDistanceValue) {
 
       // check down stroke length here. Long enough?
 
-
-      //Why are the down distance values as low as 10 when a full stroke was done?
       if (downDistance < maximumDepth * 0.6) {
         //Serial.println("Short down!");
         previousDownWasShort = true;
