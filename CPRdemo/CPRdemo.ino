@@ -12,7 +12,7 @@
 
 
 #define POT_PIN_TIME A0 // Input from TIME pot
-#define POT_PIN_BEATSPERMINUTE A2 // Input from BEATSPERMINUTE pot
+#define POT_PIN_BEATSPERMINUTE A3 // Input from BEATSPERMINUTE pot
 #define BUTTON_STARTSTOP 2 // Set pin 2 for StartStop button
 #define BUTTON_ADULTCHILD 4 // Set pin 4 for AdultChild button
 #define NUM_SAMPLES 10
@@ -264,6 +264,7 @@ void UpdateSetup() {
 
 void UpdatePlay() {
   int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
+
   checkForDirectionChange(currentDistanceValue);
   previousDistanceValue = currentDistanceValue;
   //  if (beatCounter == 0) {
@@ -461,7 +462,7 @@ void loop() {
   timePot.updatePot();
   bpmPot.updatePot();
 
-  //  Serial.println((String)bpmPot.getRollingAverage() + " " + (String)bpmPot.getInstantaneousValue());
+  //Serial.println((String)bpmPot.getRollingAverage() + " " + (String)bpmPot.getInstantaneousValue());
 
 
   bool error = false;
