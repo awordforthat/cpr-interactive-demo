@@ -152,10 +152,10 @@ void checkForDirectionChange(int currentDistanceValue) {
 
   bool spuriousRead = false;
   if ((currentDistanceValue < previousDistanceValue) && dirPlus) {
-    Serial.println("Going up!");
+//    Serial.println("Going up!");
 
-    if (downDistance < maximumDepth * 0.6) {
-      Serial.println("Short down!");
+    
+    if (downDistance < maximumDepth * 0.6 && downDistance != 1) {
       previousDownWasShort = true;
       numBadDowns++;
     }
@@ -169,18 +169,10 @@ void checkForDirectionChange(int currentDistanceValue) {
     dirPlus = !dirPlus; //Change direction flag
   }
   else if ((currentDistanceValue > previousDistanceValue) && !dirPlus) {
-    Serial.println("Going down!");
+//    Serial.println("Going down!");
 
-    if (upDistance < (maximumDepth - 1)) {
-      if (upDistance != 1) {
-        if (!previousDownWasShort) {
-          shortUpStrokeCounter++;
-        }
-      }
-    }
-
-    if (upDistance < maximumDepth * 0.60) {
-      // Serial.println("Short up!");
+    if (upDistance < maximumDepth * 0.60 && upDistance != 1) {
+      shortUpStrokeCounter++;
       previousUpWasShort = true;
     }
     else {
@@ -190,10 +182,6 @@ void checkForDirectionChange(int currentDistanceValue) {
     upDistance = 0;
     startDistanceValue = currentDistanceValue;
     dirPlus = !dirPlus;
-
-
-
-
     beatCounter++;
     numIntervalBeats++;
   }
@@ -201,59 +189,7 @@ void checkForDirectionChange(int currentDistanceValue) {
   previousDistanceValue = currentDistanceValue;
 
 
-  //
-  //  else if ((currentDistanceValue > previousDistanceValue) && dirPlus ) { //Has direction changed?  If so, going down now.
-  //    directionChangeCounter ++; //Add one to count to obtain cycles.
-  //
-  //    Serial.println("Going down");
-  //    //Serial.println("Up stroke length " + (String)upDistance);
-  //    if (upDistance < (maximumDepth - 1)) {
-  //      if (upDistance != 1) {
-  //
-  //        // TODO: Record up stroke as being short iff previous down stroke was *not* also short
-  //        if (!previousDownWasShort) {
-  //          shortUpStrokeCounter++;
-  //          Serial.println("Adding short up");
-  //          // check up stroke length here. Long enough?
-  //          //Serial.println("Release chest fully " + (String)shortUpStrokeCounter); //This will call an audio file later
-  //          //Serial.println();
-  //        }
-  //
-  //
-  //
-  //
-  //        if (upDistance < maximumDepth * 0.60) {
-  //          // Serial.println("Short up!");
-  //          previousUpWasShort = true;
-  //        }
-  //        else {
-  //          previousUpWasShort = false;
-  //        }
-  //        upDistance = 0;
-  //
-  //        startDistanceValue = currentDistanceValue; //Update start distance
-  //        dirPlus = !dirPlus; //Change direction flag
-  //
-  //        beatCounter++;
-  //        numIntervalBeats++;
-  //
-  //
-  //
-  //      }
-  //
-  //
-  //    }
-  //
-  //  }
-
 }
-
-
-
-
-
-
-
 
 
 
