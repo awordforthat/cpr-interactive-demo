@@ -46,7 +46,7 @@ size_t fWrite(const byte what) {
 
 // variables common to all states
 StateID currentState = SETUP;
-bool includeCalibration = true;
+bool includeCalibration = false;
 bool adultMode = true;
 int smoothingValue = 15;
 Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
@@ -94,13 +94,12 @@ boolean previousUpWasShort = false;
 int shortUpStrokeCounter = 0;
 int distanceCounterBeats = 5;
 int overallBpmCount = 0;
-int feedbackMode = -1;
+int feedbackMode = -1; //Why -1?
 int numCorrections = 0;
 int numBadDowns = 0;
 int numIntervalBeats = 0;
 boolean sentFeedbackLastTime = true;
 boolean sent75pctInfo = false;
-
 
 unsigned long previousBlink = millis();
 
@@ -140,8 +139,7 @@ void handleTimeUpdate(long currentMillis) {
     previousMillis = currentMillis;
 
     //If one second has elapsed, do all these things
-    // Serial.println("Update display");
-    hours = (timeCountDown - (timeCountDown % secsPerHour)) / secsPerHour;
+    //    hours = (timeCountDown - (timeCountDown % secsPerHour)) / secsPerHour;
     minutes = ((timeCountDown - (timeCountDown % secsPerMinute) - (hours * secsPerHour))) / secsPerMinute; // secsPerMinute;
     seconds = ((timeCountDown % secsPerHour) % secsPerMinute);
     if (minutes == 0) {
@@ -204,17 +202,14 @@ void setup() {
 } //End setup
 
 
-//This is the GoToNextState function.
 void GoToNextState()
 {
   Serial.println("Old state id: " + (String)currentState);
   int newStateId = (currentState + 1) % (includeCalibration ? 4 : 3);
-
   Serial.println("New state id: " + (String)newStateId);
   Serial.println();
   currentState = newStateId;
 }
-//End of GoToNextState function
 
 
 void UpdateSetup() {
@@ -243,6 +238,7 @@ void UpdateSetup() {
     previousUpWasShort = false;
     numBadDowns = 0;
     numIntervalBeats = 0;
+
     // read the adult/child button at the moment we exit this state and use that value to determine which mode runs in the play state
     adultMode = digitalRead(BUTTON_ADULTCHILD);  // 1= Adult, 0= Child
     if (adultMode == 1)
@@ -254,8 +250,6 @@ void UpdateSetup() {
       Serial.println("adultMode= CHILD");
     }
 
-
-
     GoToNextState();
   }
 }
@@ -265,17 +259,18 @@ void UpdateSetup() {
 void UpdatePlay() {
   int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
 
+  //Hold processing and flash the time display until the first down stroke to
+  // make ovarall BPM reporting more accurate.
   checkForDirectionChange(currentDistanceValue);
   previousDistanceValue = currentDistanceValue;
-  //  if (beatCounter == 0) {
-  //    redDisplay.blinkRate(1);
-  //    redDisplay.writeDisplay();
-  //
-  //    //don't do nothin'
-  //  }
-  //  else {
-  //    redDisplay.blinkRate(0);
-  //    redDisplay.writeDisplay();
+  if (beatCounter == 0) {
+    redDisplay.blinkRate(1);
+    redDisplay.writeDisplay();
+    return;
+  }
+
+  redDisplay.blinkRate(0);
+  redDisplay.writeDisplay();
 
   if (seconds < 10) {
     redDisplay.writeDigitNum(3, 0);
@@ -289,17 +284,17 @@ void UpdatePlay() {
 
 
   if (((millis() - overallBpmStartTime) > (0.75 * playDuration * 1000)) && !sent75pctInfo) {
-
     commChannel.sendMsg(TIRED, sizeof(TIRED));
+    Serial.println("Tired? 75%");
     sent75pctInfo = true;
   }
 
-  if (millis() >= (averageIntervalStartTime + AVERAGE_INTERVAL_SAMPLE_TIME)) {
+  if (millis() >= (averageIntervalStartTime + AVERAGE_INTERVAL_SAMPLE_TIME)) { //every 5 seconds do every thing below until testing Start/Stop button.
     // do our calculations
     calculateAverageBPM();
     // TODO: calculate distance here
 
-    // how is the user doing?
+    // how is the user doing? Check all three conditions.
     bool hasGoodPaceSlow = checkPaceProficiencySlow(averageBpm, MIN_ACCEPTABLE_BPM); // is pace fast enough? (i.e., faster than MIN)
     bool hasGoodPaceFast = checkPaceProficiencyFast(averageBpm, MAX_ACCEPTABLE_BPM); // is pace slow enough? (i.e., slower than MAX)
     bool hasGoodDepth = checkDepthProficiency();
@@ -308,44 +303,55 @@ void UpdatePlay() {
     if (feedbackMode == LISTENING && !hasGoodPaceFast || !hasGoodPaceSlow || !hasGoodDepth) { // listening for a mistake. if there is one, kick into correction mode
       if (!hasGoodDepth) {
         feedbackMode = CHECK_FOR_DEPTH;
-        numCorrections = 0;
+        //        numCorrections = 0;
       }
       if (!hasGoodPaceSlow) {
         feedbackMode = CHECK_FOR_PACE_SLOW; // if both pace and depth are bad, this line will override the last one, which is what we want.
-        numCorrections = 0;
+        //        deliverPaceFeedback
       }
+      if (!hasGoodPaceFast) { //Need to get processing to get here.
+        feedbackMode = CHECK_FOR_PACE_FAST;
+        //        deliverPaceFeedback
+      }
+
+      // give feedback if appropriate
+      if (!sentFeedbackLastTime) {
+        deliverFeedback(hasGoodPaceSlow, hasGoodPaceFast, hasGoodDepth);
+      }
+
+      sentFeedbackLastTime = !sentFeedbackLastTime;
+
     }
 
-    // give feedback if appropriate
-    if (!sentFeedbackLastTime) {
-      deliverFeedback(hasGoodPaceSlow, hasGoodPaceSlow, hasGoodDepth);
-    }
-    sentFeedbackLastTime = !sentFeedbackLastTime;
-
-
+    // If nothing is bad, reset for next pass and check Start/Stop button.
     // if the user has corrected their mistake, kick back into listening mode
+
+    //This switch statement seems to be for reporting good performance
     switch (feedbackMode) {
       case CHECK_FOR_PACE_SLOW:
         if (hasGoodPaceSlow) {
           commChannel.sendMsg(RIGHT_SPEED, sizeof(RIGHT_SPEED));
+          Serial.println("Was too slow.  Right speed now");
           feedbackMode = LISTENING;
           numCorrections = 0;
         }
-        break;
+        break; //Then move ahead to reset for next pass and check Start/Stop button.
       case CHECK_FOR_PACE_FAST:
         if (hasGoodPaceFast) {
           commChannel.sendMsg(RIGHT_SPEED, sizeof(RIGHT_SPEED));
+          Serial.println("Was too fast. Right speed now");
           feedbackMode = LISTENING;
           numCorrections = 0;
         }
-        break;
+        break; //Then move ahead to reset for next pass and check Start/Stop button.
       case CHECK_FOR_DEPTH:
         if (hasGoodDepth) {
           commChannel.sendMsg(GOOD_COMP, sizeof(GOOD_COMP));
+          Serial.println("Good compressions");
           feedbackMode = LISTENING;
           numCorrections = 0;
         }
-        break;
+        break; //Then move ahead to reset for next pass and check Start/Stop button.
     }
 
     // reset for next round
@@ -369,12 +375,13 @@ void UpdatePlay() {
     greenDisplay.writeDisplay();
 
     commChannel.sendMsg(MED_HELP, sizeof(MED_HELP));
+    Serial.println("Keep it up");
     GoToNextState();
 
   }
 
-}
 
+}
 
 void UpdateFeedback() {
   //  redDisplay.writeDigitNum(0, FEEDBACK);
@@ -528,6 +535,12 @@ void loop() {
    Not getting 75% message. Added parens in line 240 and fixed.  Or Rx/Tx jumpers were loose.
   On Util line 24 why add to numCorrections?  To prevent another iteration of this message?
 
+*/
+
+/* Fixed problem where numCorrections was getting reset to 0 and no messages were playing.
+    Changed the 'wait for compression' to include a return stament rather than the else statement.  Cleaner.
+    Added handling of the recovery from too fast. Was missing.
+    Want to fix spurious output on the serial monitor each time a serial command goes to the slave Uno.
 */
 
 
