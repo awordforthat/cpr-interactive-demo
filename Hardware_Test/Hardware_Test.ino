@@ -9,6 +9,13 @@
 #define LED_AVERAGEBPM 9 // Set pin 8 for Start/Stop button LED
 #define LED_OVERALLBPM 10 //Set pin 12 for Adult/Child button LED
 #define NUM_BPM_SAMPLES 40
+#include <Adafruit_NeoPixel.h>
+#ifdef __AVR__
+#include <avr/power.h>
+#endif
+
+#define PIN 6
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(8, PIN, NEO_GRB + NEO_KHZ800);
 
 Adafruit_7segment displayTime = Adafruit_7segment();// Add time display
 Adafruit_7segment displayBeatsPerMinute = Adafruit_7segment(); // Add BeatsPerMinute display
@@ -30,15 +37,49 @@ void setup() {
   Serial.begin(9600);
   displayTime.begin(0x71);
   displayBeatsPerMinute.begin(0x70);
+  displayTime.clear();
+  displayTime.writeDisplay();
+  displayBeatsPerMinute.clear();
+  displayBeatsPerMinute.writeDisplay();
+  strip.begin();
+  strip.show(); // Initialize all pixels to 'off'
 }
+
+// Fill the dots one after the other with a color
+void colorWipe(uint32_t c, uint8_t wait) {
+  for (uint16_t i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, c);
+    strip.show();
+    delay(wait);
+  }
+}
+
+
+//Theatre-style crawling lights.
+void theaterChase(uint32_t c, uint8_t wait) {
+  for (int j = 0; j < 10; j++) { //do 10 cycles of chasing
+    for (int q = 0; q < 3; q++) {
+      for (uint16_t i = 0; i < strip.numPixels(); i = i + 3) {
+        strip.setPixelColor(i + q, c);  //turn every third pixel on
+      }
+      strip.show();
+
+      delay(wait);
+
+      for (uint16_t i = 0; i < strip.numPixels(); i = i + 3) {
+        strip.setPixelColor(i + q, 0);      //turn every third pixel off
+      }
+    }
+  }
+}
+
 
 void loop() {
   if (loopCount <= 1) {
     for (int x = 0; x <= 1; x++) {
-
-      Serial.println("Start/Stop LED will blink in one second.");
+      Serial.println("Start/Stop LED will blink.");
       Serial.println();
-      delay(1000);
+      delay(2000);
 
       for (int x = 0; x < 4; x++) { //Loop to test button LEDs.  Turn them on and off sequentially.
         digitalWrite(ledStartStop, HIGH);
@@ -51,9 +92,9 @@ void loop() {
         delay (500);
       }
 
-      Serial.println("Adult/Child LED will blink in one second.");
+      Serial.println("Adult/Child LED will blink.");
       Serial.println();
-      delay(1000);
+      delay(2000);
 
       for (int x = 0; x < 4; x++) { //Loop to test button LEDs.  Turn them on and off sequentially.
         digitalWrite(ledAdultChild, HIGH);
@@ -68,9 +109,9 @@ void loop() {
 
       delay (1000); //Hold after completion of for loop
 
-      Serial.println("LED_AVERAGEBPM will blink in one second.");
+      Serial.println("LED_AVERAGEBPM will blink.");
       Serial.println();
-      delay(1000);
+      delay(2000);
 
       for (int x = 0; x < 4; x++) { //Loop to test button LEDs.  Turn them on and off sequentially.
         digitalWrite(LED_AVERAGEBPM, HIGH);
@@ -83,7 +124,7 @@ void loop() {
         delay (500);
       }
 
-      Serial.println("LED_OVERALLBPM will blink in one second.");
+      Serial.println("LED_OVERALLBPM will blink.");
       Serial.println();
       delay(1000);
 
@@ -98,13 +139,14 @@ void loop() {
         delay (500);
       }
 
-      delay (1000); //Hold after completion of for loop
+      delay (2000); //Hold after completion of for loop
 
 
       //Test the green Start/Stop button
       int buttonStartStopVal = 0;
       Serial.println ("Push the green Start/Stop button and check for changing value below.") ;
       Serial.println();
+      delay(2000);
 
       for (int x = 0; x < 100; x++) {
         buttonStartStopVal = digitalRead(buttonStartStop);
@@ -113,17 +155,19 @@ void loop() {
         digitalWrite(ledStartStop, buttonStartStopVal);
         Serial.print ("Start/Stop button value is: ");
         Serial.println (buttonStartStopVal);
-
       }
 
       buttonStartStopVal = 0; //Turn off ledStartStop
       digitalWrite(ledStartStop, buttonStartStopVal);
-      Serial.println (buttonStartStopVal);
-      delay (1000);
+      delay (2000);
 
       //Test the yellow Adult/Child button
       int buttonAdultChildVal = 0;
+      Serial.println();
       Serial.println ("Repeatedly press the yellow Adult/Child button and check for changing value below") ;
+      Serial.println();
+      delay(1000);
+
       for (int x = 0; x < 100; x++) {
 
         buttonAdultChildVal = digitalRead(buttonAdultChild);
@@ -132,32 +176,18 @@ void loop() {
         digitalWrite(ledAdultChild, buttonAdultChildVal);
         Serial.print ("Adult/Child button value is: ");
         Serial.println (buttonAdultChildVal);
-
       }
 
       buttonAdultChildVal = 0;
-      digitalWrite(ledAdultChild, buttonAdultChildVal);
-      Serial.println (buttonAdultChildVal); //Turn off ledAdultChild
+      digitalWrite(ledAdultChild, buttonAdultChildVal);//Turn off ledAdultChild
+      Serial.println();
       delay (1000);
 
-      //    //Test the StepState button
-      //    int buttonStepStateVal = 0;
-      //    Serial.println ("Repeatedly press the StepState button now") ;
-      //    for (int x=0; x < 1000; x++) {
-      //
-      //      buttonStepStateVal = digitalRead(buttonStepState);
-      //      buttonStepStateVal = !buttonStepStateVal; //Invert button state to make turn LED on when button is depressed
-      //
-      //      digitalWrite(ledAdultChild, buttonStepStateVal);
-      //      Serial.print ("StepState button value is: ");
-      //      Serial.println (buttonStepStateVal);
-      //
-      //    }
-      //
+
       //Check time pot and display.  Print to serial and time display
       Serial.println ("Rotate the Time pot and check the red display for changing values.") ;
       Serial.println();
-      delay(1000);
+      delay(2000);
       for (int x = 0; x < 50; x++) {
         int timePotValue = analogRead(POT_PIN_TIME);
         Serial.print("Time pot value is: ");
@@ -167,12 +197,15 @@ void loop() {
         displayTime.writeDisplay();
         delay(100);
       }
+      displayTime.clear();
+      displayTime.writeDisplay();
       delay(1000);
 
       //Check beatsPerMinute pot and display.  Print to serial and time display.
+      Serial.println();
       Serial.println ("Slide the Beats Per Minute pot and check the green display for changing values.") ;
       Serial.println();
-      delay(1000);
+      delay(2000);
       for (int x = 0; x < 50; x++) {
 
         int beatsPerMinutePotValue = analogRead(POT_PIN_BEATSPERMINUTE);
@@ -184,6 +217,23 @@ void loop() {
 
         delay(100);
       }
+      displayBeatsPerMinute.clear();
+      displayBeatsPerMinute.writeDisplay();
+
+      Serial.println();
+      Serial.println("Neopixels will chase and change color now");
+      Serial.println();
+      colorWipe(strip.Color(255, 0, 0), 50); // Red
+      colorWipe(strip.Color(0, 255, 0), 50); // Green
+      colorWipe(strip.Color(0, 0, 255), 50); // Blue
+
+      // Send a theater pixel chase in...
+      theaterChase(strip.Color(127, 127, 127), 50); // White
+      theaterChase(strip.Color(127, 0, 0), 50); // Red
+      theaterChase(strip.Color(0, 0, 127), 50); // Blue
+
+      strip.show(); // Set all pixels to 'off'
+
       Serial.println("If everything checked out, upload the CPRdemo sketch.");
       Serial.println();
 
@@ -196,3 +246,5 @@ void loop() {
     }
   }
 }
+
+
