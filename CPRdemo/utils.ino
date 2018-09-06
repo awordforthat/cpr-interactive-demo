@@ -35,13 +35,13 @@ void handleStartTimeConvert() {
 
 boolean checkPaceProficiencySlow(int averageBpm, int lowLimit) { //values from averageBpm and MIN_ACCEPTABLE_BPM
   return averageBpm > lowLimit; 
-  //Returns 'true' for hasGoodPaceSlow if averageBPM is greater than MIN_ACCEPTABLE_BPM
+  //Returns 'true' for isFastEnough if averageBPM is greater than MIN_ACCEPTABLE_BPM
   //Returns 'false' if averageBPM is less than MIN_ACCEPTABLE_BPM
 }
 
 boolean checkPaceProficiencyFast(int averageBpm, int highLimit) { //values from averageBpm and MAX_ACCEPTABLE_BPM
   return averageBpm < highLimit;
-  //Returns 'true' for hasGoodPaceFast if averageBPM is less than MIN_ACCEPTABLE_BPM
+  //Returns 'true' for isSlowEnough if averageBPM is less than MIN_ACCEPTABLE_BPM
   //Returns 'false' if averageBPM is greater than MIN_ACCEPTABLE_BPM
   }
 
@@ -90,6 +90,7 @@ void deliverFeedback(bool goingFastEnough, boolean goingSlowEnough, bool hasGood
 }
 
 void deliverPaceFeedback(bool shouldSpeedUp) {
+
   //  Serial.println("Number of corrections = " + (String)numCorrections);
   if (numCorrections < MAX_NUM_CORRECTIONS) {
 
@@ -108,6 +109,7 @@ void deliverPaceFeedback(bool shouldSpeedUp) {
     }
 
     else { // too fast! go a little slower
+      
       if (numCorrections < 1 ) {
         commChannel.sendMsg(TIRED, sizeof(TIRED)); //To be changed to a 'slower' message.
         Serial.println("Little slower");
@@ -122,13 +124,11 @@ void deliverPaceFeedback(bool shouldSpeedUp) {
       }
     }
 
-    if (numCorrections == 1) {
-      numCorrections = 0;
-    }
-    else {
-      numCorrections++;
-    }
+    numCorrections++;
   }
+
+  //
+ 
 }
 
 void deliverDepthFeedback() {

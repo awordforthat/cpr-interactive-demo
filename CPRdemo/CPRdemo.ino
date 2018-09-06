@@ -27,6 +27,7 @@ Adafruit_7segment greenDisplay = Adafruit_7segment();
 
 enum StateID {
   SETUP,
+  WAITING,
   PLAY,
   FEEDBACK,
   CALIBRATION
@@ -94,7 +95,7 @@ boolean previousUpWasShort = false;
 int shortUpStrokeCounter = 0;
 int distanceCounterBeats = 5;
 int overallBpmCount = 0;
-int feedbackMode = -1; //Why -1?
+int feedbackMode = -1;
 int numCorrections = 0;
 int numBadDowns = 0;
 int numIntervalBeats = 0;
@@ -205,7 +206,7 @@ void setup() {
 void GoToNextState()
 {
   Serial.println("Old state id: " + (String)currentState);
-  int newStateId = (currentState + 1) % (includeCalibration ? 4 : 3);
+  int newStateId = (currentState + 1) % (includeCalibration ? 5 : 4);
   Serial.println("New state id: " + (String)newStateId);
   Serial.println();
   currentState = newStateId;
@@ -225,20 +226,10 @@ void UpdateSetup() {
     greenDisplay.clear();
     greenDisplay.writeDisplay();
 
-    previousDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
-    Serial.println("previousDistanceValue = " + (String)previousDistanceValue);
-    startDistanceValue = previousDistanceValue;
-    averageIntervalStartTime = millis();
-    overallBpmStartTime = millis();
-    averageBpmCounterStart = 0;
-    overallBpmCounterStart = beatCounter;
-    feedbackMode = LISTENING;
-    numCorrections = 0;
-    previousDownWasShort = false;
-    previousUpWasShort = false;
-    numBadDowns = 0;
-    numIntervalBeats = 0;
-
+    beatCounter = 0;
+    redDisplay.blinkRate(1);
+    redDisplay.writeDisplay();
+    
     // read the adult/child button at the moment we exit this state and use that value to determine which mode runs in the play state
     adultMode = digitalRead(BUTTON_ADULTCHILD);  // 1= Adult, 0= Child
     if (adultMode == 1)
@@ -255,6 +246,28 @@ void UpdateSetup() {
 }
 
 
+void UpdateWaiting() {
+
+  int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
+  checkForDirectionChange(currentDistanceValue); 
+  if(beatCounter > 1) {
+
+    previousDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
+    startDistanceValue = previousDistanceValue;
+    averageIntervalStartTime = millis();
+    overallBpmStartTime = millis();
+    averageBpmCounterStart = 0;
+    overallBpmCounterStart = beatCounter;
+    feedbackMode = LISTENING;
+    numCorrections = 0;
+    previousDownWasShort = false;
+    previousUpWasShort = false;
+    numBadDowns = 0;
+    numIntervalBeats = 0;
+    
+    GoToNextState();
+  }
+}
 
 void UpdatePlay() {
   int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
@@ -263,11 +276,13 @@ void UpdatePlay() {
   // make ovarall BPM reporting more accurate.
   checkForDirectionChange(currentDistanceValue);
   previousDistanceValue = currentDistanceValue;
-  if (beatCounter == 0) {
-    redDisplay.blinkRate(1);
-    redDisplay.writeDisplay();
-    return;
-  }
+//  if (beatCounter == 0) {
+//    redDisplay.blinkRate(1);
+//    redDisplay.writeDisplay();
+//    return;
+//  }
+ 
+  
 
   redDisplay.blinkRate(0);
   redDisplay.writeDisplay();
@@ -289,34 +304,36 @@ void UpdatePlay() {
     sent75pctInfo = true;
   }
 
-  if (millis() >= (averageIntervalStartTime + AVERAGE_INTERVAL_SAMPLE_TIME)) { //every 5 seconds do every thing below until testing Start/Stop button.
+  if (currentMillis >= (averageIntervalStartTime + AVERAGE_INTERVAL_SAMPLE_TIME)) { //every 5 seconds do every thing below until testing Start/Stop button.
     // do our calculations
     calculateAverageBPM();
     // TODO: calculate distance here
 
+    Serial.println("5 second check");
+
     // how is the user doing? Check all three conditions.
-    bool hasGoodPaceSlow = checkPaceProficiencySlow(averageBpm, MIN_ACCEPTABLE_BPM); // is pace fast enough? (i.e., faster than MIN)
-    bool hasGoodPaceFast = checkPaceProficiencyFast(averageBpm, MAX_ACCEPTABLE_BPM); // is pace slow enough? (i.e., slower than MAX)
+    bool isFastEnough = checkPaceProficiencySlow(averageBpm, MIN_ACCEPTABLE_BPM); // is pace fast enough? (i.e., faster than MIN)
+    bool isSlowEnough = checkPaceProficiencyFast(averageBpm, MAX_ACCEPTABLE_BPM); // is pace slow enough? (i.e., slower than MAX)
     bool hasGoodDepth = checkDepthProficiency();
 
     // evaluate feedback mode, changing if necessary
-    if (feedbackMode == LISTENING && !hasGoodPaceFast || !hasGoodPaceSlow || !hasGoodDepth) { // listening for a mistake. if there is one, kick into correction mode
+    if (feedbackMode == LISTENING && !isSlowEnough || !isFastEnough || !hasGoodDepth) { // listening for a mistake. if there is one, kick into correction mode
       if (!hasGoodDepth) {
         feedbackMode = CHECK_FOR_DEPTH;
         //        numCorrections = 0;
       }
-      if (!hasGoodPaceSlow) {
+      if (!isFastEnough) {
         feedbackMode = CHECK_FOR_PACE_SLOW; // if both pace and depth are bad, this line will override the last one, which is what we want.
         //        deliverPaceFeedback
       }
-      if (!hasGoodPaceFast) { //Need to get processing to get here.
+      if (!isSlowEnough) { //Need to get processing to get here.
         feedbackMode = CHECK_FOR_PACE_FAST;
         //        deliverPaceFeedback
       }
 
       // give feedback if appropriate
       if (!sentFeedbackLastTime) {
-        deliverFeedback(hasGoodPaceSlow, hasGoodPaceFast, hasGoodDepth);
+        deliverFeedback(isFastEnough, isSlowEnough, hasGoodDepth);
       }
 
       sentFeedbackLastTime = !sentFeedbackLastTime;
@@ -329,7 +346,7 @@ void UpdatePlay() {
     //This switch statement seems to be for reporting good performance
     switch (feedbackMode) {
       case CHECK_FOR_PACE_SLOW:
-        if (hasGoodPaceSlow) {
+        if (isFastEnough) {
           commChannel.sendMsg(RIGHT_SPEED, sizeof(RIGHT_SPEED));
           Serial.println("Was too slow.  Right speed now");
           feedbackMode = LISTENING;
@@ -337,7 +354,7 @@ void UpdatePlay() {
         }
         break; //Then move ahead to reset for next pass and check Start/Stop button.
       case CHECK_FOR_PACE_FAST:
-        if (hasGoodPaceFast) {
+        if (isSlowEnough) {
           commChannel.sendMsg(RIGHT_SPEED, sizeof(RIGHT_SPEED));
           Serial.println("Was too fast. Right speed now");
           feedbackMode = LISTENING;
@@ -476,6 +493,9 @@ void loop() {
   switch (currentState) {
     case SETUP:
       UpdateSetup();
+      break;
+    case WAITING:
+      UpdateWaiting();
       break;
     case PLAY:
       UpdatePlay();
