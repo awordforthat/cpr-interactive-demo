@@ -56,6 +56,7 @@ bool checkDepthProficiency() {
 
 //This switch statement seems to be for handling feedback for poor performance
 void deliverFeedback(bool goingFastEnough, boolean goingSlowEnough, bool hasGoodDepth) {
+  Serial.println("Delivering feedback for mode " + (String)feedbackMode);
   switch (feedbackMode) {
     case LISTENING:
       if (numCorrections == 0)
@@ -75,6 +76,7 @@ void deliverFeedback(bool goingFastEnough, boolean goingSlowEnough, bool hasGood
       
     case CHECK_FOR_PACE_FAST:
       if (!goingSlowEnough) {
+        Serial.println("Inside deliverFeedback - toooo faaaast!");
         deliverPaceFeedback(false);  // slow down!
       }
       break;

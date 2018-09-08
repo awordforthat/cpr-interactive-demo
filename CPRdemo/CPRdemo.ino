@@ -33,6 +33,8 @@ enum StateID {
   CALIBRATION
 };
 
+
+
 enum AudioFeedbackMode {
   CHECK_FOR_PACE_SLOW, // user is going at too slow a pace. Coach them through it until mistake is resolved.
   CHECK_FOR_PACE_FAST, // user is going at too fast a pace. Coach them through it until mistake is resolved.
@@ -121,7 +123,7 @@ const int MAX_NUM_SECONDS = 182;
 const int MIN_NUM_SECONDS = 15;
 const int MAX_NUM_CORRECTIONS = 2;
 const int MIN_ACCEPTABLE_BPM = 100;
-const int MAX_ACCEPTABLE_BPM = 120;
+const int MAX_ACCEPTABLE_BPM = 121;
 const int MIN_STROKE_DISTANCE = 5;
 
 
@@ -264,6 +266,7 @@ void UpdateWaiting() {
     previousUpWasShort = false;
     numBadDowns = 0;
     numIntervalBeats = 0;
+    sentFeedbackLastTime = false;
     
     GoToNextState();
   }
@@ -276,12 +279,6 @@ void UpdatePlay() {
   // make ovarall BPM reporting more accurate.
   checkForDirectionChange(currentDistanceValue);
   previousDistanceValue = currentDistanceValue;
-//  if (beatCounter == 0) {
-//    redDisplay.blinkRate(1);
-//    redDisplay.writeDisplay();
-//    return;
-//  }
- 
   
 
   redDisplay.blinkRate(0);
@@ -309,36 +306,40 @@ void UpdatePlay() {
     calculateAverageBPM();
     // TODO: calculate distance here
 
-    Serial.println("5 second check");
+    
 
     // how is the user doing? Check all three conditions.
     bool isFastEnough = checkPaceProficiencySlow(averageBpm, MIN_ACCEPTABLE_BPM); // is pace fast enough? (i.e., faster than MIN)
     bool isSlowEnough = checkPaceProficiencyFast(averageBpm, MAX_ACCEPTABLE_BPM); // is pace slow enough? (i.e., slower than MAX)
     bool hasGoodDepth = checkDepthProficiency();
 
+    Serial.println(averageBpm + (String)isFastEnough  + (String)isSlowEnough);
+   
     // evaluate feedback mode, changing if necessary
-    if (feedbackMode == LISTENING && !isSlowEnough || !isFastEnough || !hasGoodDepth) { // listening for a mistake. if there is one, kick into correction mode
+    if (feedbackMode == LISTENING && ( !hasGoodDepth || !(isFastEnough == isSlowEnough && isFastEnough) )) { // listening for a mistake. if there is one, kick into correction mode
       if (!hasGoodDepth) {
         feedbackMode = CHECK_FOR_DEPTH;
-        //        numCorrections = 0;
       }
       if (!isFastEnough) {
         feedbackMode = CHECK_FOR_PACE_SLOW; // if both pace and depth are bad, this line will override the last one, which is what we want.
-        //        deliverPaceFeedback
+        
       }
       if (!isSlowEnough) { //Need to get processing to get here.
         feedbackMode = CHECK_FOR_PACE_FAST;
-        //        deliverPaceFeedback
       }
 
-      // give feedback if appropriate
-      if (!sentFeedbackLastTime) {
+    }
+
+ // give feedback if appropriate
+     if (!sentFeedbackLastTime && feedbackMode != LISTENING) {
+        Serial.println("Trying to deliver feedback");
         deliverFeedback(isFastEnough, isSlowEnough, hasGoodDepth);
       }
 
-      sentFeedbackLastTime = !sentFeedbackLastTime;
+     
 
-    }
+     sentFeedbackLastTime = !sentFeedbackLastTime;
+
 
     // If nothing is bad, reset for next pass and check Start/Stop button.
     // if the user has corrected their mistake, kick back into listening mode
