@@ -5,6 +5,14 @@
 
 #define PIN 6
 
+int ANIMATION_STEP_DELAY = 10;
+int UPDATE_STEP_DELAY = 2000;
+int numLitPixels = 1;
+bool isIdle = true;
+unsigned long startMillis = 0;
+unsigned long tickMillis = 0;
+
+
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = Arduino pin number (most are valid)
 // Parameter 3 = pixel type flags, add together as needed:
@@ -18,25 +26,51 @@ void setup() {
   Serial.begin(9600);
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
+  startMillis = millis();
+
 }
 
 void loop() {
-  for (int i = 24; i > 0; i --) {
-    strip.setPixelColor(i, 0, 0, 255);
+
+  if (millis() > (tickMillis + UPDATE_STEP_DELAY)) {
+    strip.clear();
     strip.show();
-    delay(50);
+    tickMillis = millis();
+    isIdle = false;
   }
-  //Flash strip  Isn't there a way to blank in one command?
-  for (int i = 0; i < 6; i++) {
-    for (int i = 0; i < 24; i++) {
-      strip.setPixelColor(i, 0, 0, 0);
-      strip.show();
-    }
-    delay(200);
-    for (int i = 0; i < 24; i ++) {
-      strip.setPixelColor(i, 0, 75, 0);
-      strip.show();
-    }
-    delay(200);
+
+  if (!isIdle) {
+    updateCountdown(ANIMATION_STEP_DELAY);
   }
+
+
+  if (numLitPixels > 23) {
+    numLitPixels = 0;
+    
+    isIdle = true;
+  }
+  //  delay(1000);
+
+
+  //  for (int i = 24; i > 0; i --) {
+  //    strip.setPixelColor(i, 0, 0, 20);
+  //    strip.show();
+  //    delay(10);
+  //  }
+  //  //Flash strip
+  //  for (int i = 0; i < 2; i++) {
+  //    for (int i = 0; i < 24; i++) {
+  //      strip.clear();
+  //      strip.show();
+  //    }
+  //
+  //    delay(1);
+  //
+  //    for (int i = 0; i < 24; i ++) {
+  //      strip.setPixelColor(i, 0, 10, 0);
+  //      strip.show();
+  //    }
+  //
+  //    delay(100);
+  //  }
 }
