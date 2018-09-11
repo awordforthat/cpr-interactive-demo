@@ -13,7 +13,7 @@ int NUM_PIXELS = 24;
 bool isIdle = true;
 bool decrementNow = false;
 unsigned long startMillis = 0;
-int numLitPixels = NUM_PIXELS; //Number of pixels to be lit upon updating the stick
+int numLitPixels = 1; //Number of pixels to be lit upon updating the stick
 //int lastLitPixel = NUM_PIXELS; //Number of the highest pixel previously lit
 long decrementMillis = millis(); //Count down from this value of millis maybe
 long countDownSeconds = 10 ; //Arbitrarily set
@@ -68,9 +68,10 @@ void loop() {
 
   if (numLitPixels > NUM_PIXELS) { //Reset the pixels to start again from pixel 0 when refreshing the stick.
     numLitPixels = 0; //Can this condition exist?
+      isIdle = true;
   }
 //  decrementNow = false; // Change to say we're looking for another pixel to blank
-  isIdle = true;
+
 }
 
 
