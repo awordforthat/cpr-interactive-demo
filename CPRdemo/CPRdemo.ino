@@ -111,11 +111,12 @@ const byte GOOD_COMP [] = "1";
 const byte RIGHT_SPEED [] = "2";
 const byte GOT_THIS [] = "3";
 const byte LITTLE_FASTER [] = "4";
-const byte INTRO_AND_MUSIC [] = "5";
+const byte LITTLE_FASTER_AND_MUSIC [] = "5";
 const byte PUSH_HARDER [] = "6";
 const byte MED_HELP [] = "7";
 const byte TIRED [] = "8";
 const byte LITTLE_SLOWER [] = "9";
+const byte LITTLE_SLOWER_AND_MUSIC [] = "10";
 
 const int AVERAGE_INTERVAL_SAMPLE_TIME = 5000;//How long between averaging and postings of averageBpm, in millis().
 const int BPM_CONVERT = (60 / (AVERAGE_INTERVAL_SAMPLE_TIME / 1000));

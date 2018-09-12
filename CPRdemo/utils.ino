@@ -104,7 +104,7 @@ void deliverPaceFeedback(bool shouldSpeedUp) {
       }
       
       else {
-        commChannel.sendMsg(INTRO_AND_MUSIC, sizeof(INTRO_AND_MUSIC));
+        commChannel.sendMsg(LITTLE_FASTER_AND_MUSIC, sizeof(LITTLE_FASTER_AND_MUSIC));
         Serial.println("Play music");
         Serial.println();
       }
@@ -113,14 +113,14 @@ void deliverPaceFeedback(bool shouldSpeedUp) {
     else { // too fast! go a little slower
       
       if (numCorrections < 1 ) {
-        commChannel.sendMsg(TIRED, sizeof(TIRED)); //To be changed to a 'slower' message.
+        commChannel.sendMsg(LITTLE_SLOWER, sizeof(LITTLE_SLOWER)); //To be changed to a 'slower' message.
         Serial.println("Little slower");
         Serial.println();
       }
       
       //We never seem to hit this else statement and hear intro and music.  Get back to this.
       else {
-        commChannel.sendMsg(INTRO_AND_MUSIC, sizeof(INTRO_AND_MUSIC));
+        commChannel.sendMsg(LITTLE_SLOWER_AND_MUSIC, sizeof(LITTLE_SLOWER_AND_MUSIC));
         Serial.println("Play music");
         Serial.println();
       }
