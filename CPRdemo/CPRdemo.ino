@@ -20,6 +20,7 @@
 #define LED_ADULTCHILD 12 //Set pin 12 for Adult/Child button LED
 #define LED_AVERAGEBPM 9 // Set pin 8 for Start/Stop button LED
 #define LED_OVERALLBPM 10 //Set pin 12 for Adult/Child button LED#define NUM_BPM_SAMPLES 40
+#define STRIP_PIN 6 //Set pin 6 for Neopixel strip
 
 Adafruit_7segment redDisplay = Adafruit_7segment();
 Adafruit_7segment greenDisplay = Adafruit_7segment();
@@ -59,7 +60,7 @@ Potentiometer timePot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
 RS485 commChannel(NULL, NULL, fWrite, 0);
 
 unsigned long previousMillis = 0;        // will store last time LED was updated
-const long interval = 1000;           // interval at which to blink (milliseconds) Usually 1000  Why is this long variable?
+const long interval = 1000;           // interval at which to blink (milliseconds) Usually 1000  Why is this a long variable?
 boolean drawDots = true;  //A variable to hold whether to display dots or not
 unsigned long startTime = 0;
 unsigned long timeCountDown = startTime;
@@ -101,11 +102,21 @@ int feedbackMode = -1;
 int numCorrections = 0;
 int numBadDowns = 0;
 int numIntervalBeats = 0;
+int NUM_PIXELS = 24; //Should this be a const int?
+int numLitPixels = 1; //Number of pixels to be lit upon updating the stick
+int lastLitPixel = NUM_PIXELS; //Number of the highest pixel previously lit
+int stickDifference = 0; //Value at which a pixel should be dropped
 boolean sentFeedbackLastTime = true;
 boolean sent75pctInfo = false;
+bool isIdle = true;
+bool decrementNow = false;
+long countDownSeconds = 10; //Arbitrarily set.  To be deleted.
+long countDownMillis = countDownSeconds * 1000; //Number of millis in total countdown time
+long previousCountDownMillis = 0;
 
 unsigned long previousBlink = millis();
-
+unsigned long startMillis = 0; //For updateCountdown
+int ANIMATION_STEP_DELAY = 15; //Time between stick pixels when refreshing stick
 const int BLINK_INTERVAL = 500;
 const byte GOOD_COMP [] = "1";
 const byte RIGHT_SPEED [] = "2";
@@ -127,6 +138,7 @@ const int MIN_ACCEPTABLE_BPM = 100;
 const int MAX_ACCEPTABLE_BPM = 121;
 const int MIN_STROKE_DISTANCE = 5;
 
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, STRIP_PIN, NEO_GRB + NEO_KHZ800);
 
 //Variables for Calibrate state
 
@@ -148,13 +160,13 @@ void handleTimeUpdate(long currentMillis) {
     seconds = ((timeCountDown % secsPerHour) % secsPerMinute);
     if (minutes == 0) {
       if (seconds < 10) {
-        redDisplay.writeDigitNum(3, 0);
+        greenDisplay.writeDigitNum(3, 0);
       }
     }
 
     int displayValue = (minutes * 100) + seconds; //To be pushed to the display.
-    redDisplay.print(displayValue);
-    redDisplay.writeDisplay();
+    greenDisplay.print(displayValue);
+    greenDisplay.writeDisplay();
 
     timeCountDown--; //Decrement countdown counter
   }
@@ -164,8 +176,8 @@ void handleColonBlink(long currentMillis) {
   if (currentMillis - previousBlink >= BLINK_INTERVAL) {
     // If a half second has elapsed, do all these things
     previousBlink = currentMillis;
-    redDisplay.drawColon(drawDots);
-    redDisplay.writeDisplay();
+    greenDisplay.drawColon(drawDots);
+    greenDisplay.writeDisplay();
     drawDots = !drawDots; //invert drawDots state
   }
 }
@@ -199,9 +211,14 @@ void setup() {
   Serial.begin(9600);
 
   commChannel.begin();
-
+  strip.begin();
+  strip.clear();
+  strip.show();
+  startMillis = millis();
   timePot.init();
   bpmPot.init();
+
+
 
 } //End setup
 
@@ -220,6 +237,12 @@ void UpdateSetup() {
   // gets the smoothed value from the time pot, then maps it into the min-max second range
   // tiny change
   timeCountDown = ((int)map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS));
+  countDownMillis = timeCountDown * 1000;
+  //  int stickCountDown = ((int)map(512, 0, 1023, 0, NUM_PIXELS)); //Pot value mapped to length of stick (NUM_PIXELS)
+  //Arbitrary pot value of 50% of range
+  stickDifference = countDownMillis / NUM_PIXELS; //How many millis between redisplay of stick
+  //  previousCountDownMillis = millis();
+
   playDuration = timeCountDown;
   handleStartTimeConvert();
 
@@ -232,7 +255,7 @@ void UpdateSetup() {
     beatCounter = 0;
     redDisplay.blinkRate(1);
     redDisplay.writeDisplay();
-    
+
     // read the adult/child button at the moment we exit this state and use that value to determine which mode runs in the play state
     adultMode = digitalRead(BUTTON_ADULTCHILD);  // 1= Adult, 0= Child
     if (adultMode == 1)
@@ -252,9 +275,10 @@ void UpdateSetup() {
 void UpdateWaiting() {
 
   int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
-  checkForDirectionChange(currentDistanceValue); 
-  if(beatCounter > 1) {
+  checkForDirectionChange(currentDistanceValue);
+  
 
+  if (beatCounter > 1 || startStopButton.wasPressed()) { //at the first compression or push of the Start/Stop button, do all this
     previousDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
     startDistanceValue = previousDistanceValue;
     averageIntervalStartTime = millis();
@@ -268,7 +292,8 @@ void UpdateWaiting() {
     numBadDowns = 0;
     numIntervalBeats = 0;
     sentFeedbackLastTime = false;
-    
+    redDisplay.clear();
+    redDisplay.writeDisplay();
     GoToNextState();
   }
 }
@@ -277,17 +302,38 @@ void UpdatePlay() {
   int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
 
   //Hold processing and flash the time display until the first down stroke to
-  // make ovarall BPM reporting more accurate.
+  // make overall BPM reporting more accurate.
   checkForDirectionChange(currentDistanceValue);
   previousDistanceValue = currentDistanceValue;
-  
+  decrementCounter(); //Go see if a stickDifference has occurred
+
+  if (decrementNow == true) { //If we counted down to the point to blank a pixel
+    //  if (millis() > (tickMillis + UPDATE_STEP_DELAY)) { //UPDATE_STEP_DELAY to be removed when we trigger update by event
+    strip.clear();
+    strip.show();
+    //    tickMillis = millis(); //Reset the idle count
+    isIdle = false;
+  }
+  //  Serial.println("lastLitPixel = " + (String)lastLitPixel);
+
+
+  if (!isIdle) {
+    updateCountdown(ANIMATION_STEP_DELAY); //Go update the stick
+    decrementNow = false; // Change to say we're looking for another pixel to blank
+  }
+
+
+  if (numLitPixels > lastLitPixel) { //Reset the pixels to start again from pixel 0 when refreshing the stick.
+    numLitPixels = 0;
+    isIdle = true;
+  }
 
   redDisplay.blinkRate(0);
   redDisplay.writeDisplay();
 
   if (seconds < 10) {
-    redDisplay.writeDigitNum(3, 0);
-    redDisplay.writeDisplay();
+    greenDisplay.writeDigitNum(3, 0);
+    greenDisplay.writeDisplay();
   }
 
   long currentMillis = millis(); //Record current time (used in calculating what to display on each of the 7-segs)
@@ -307,7 +353,7 @@ void UpdatePlay() {
     calculateAverageBPM();
     // TODO: calculate distance here
 
-    
+
 
     // how is the user doing? Check all three conditions.
     bool isFastEnough = checkPaceProficiencySlow(averageBpm, MIN_ACCEPTABLE_BPM); // is pace fast enough? (i.e., faster than MIN)
@@ -315,7 +361,7 @@ void UpdatePlay() {
     bool hasGoodDepth = checkDepthProficiency();
 
     Serial.println(averageBpm + (String)isFastEnough  + (String)isSlowEnough);
-   
+
     // evaluate feedback mode, changing if necessary
     if (feedbackMode == LISTENING && ( !hasGoodDepth || !(isFastEnough == isSlowEnough && isFastEnough) )) { // listening for a mistake. if there is one, kick into correction mode
       if (!hasGoodDepth) {
@@ -323,7 +369,7 @@ void UpdatePlay() {
       }
       if (!isFastEnough) {
         feedbackMode = CHECK_FOR_PACE_SLOW; // if both pace and depth are bad, this line will override the last one, which is what we want.
-        
+
       }
       if (!isSlowEnough) { //Need to get processing to get here.
         feedbackMode = CHECK_FOR_PACE_FAST;
@@ -331,15 +377,15 @@ void UpdatePlay() {
 
     }
 
- // give feedback if appropriate
-     if (!sentFeedbackLastTime && feedbackMode != LISTENING) {
-        Serial.println("Trying to deliver feedback");
-        deliverFeedback(isFastEnough, isSlowEnough, hasGoodDepth);
-      }
+    // give feedback if appropriate
+    if (!sentFeedbackLastTime && feedbackMode != LISTENING) {
+      Serial.println("Trying to deliver feedback");
+      deliverFeedback(isFastEnough, isSlowEnough, hasGoodDepth);
+    }
 
-     
 
-     sentFeedbackLastTime = !sentFeedbackLastTime;
+
+    sentFeedbackLastTime = !sentFeedbackLastTime;
 
 
     // If nothing is bad, reset for next pass and check Start/Stop button.
@@ -377,8 +423,6 @@ void UpdatePlay() {
     averageIntervalStartTime = millis();
     numBadDowns = 0;
     numIntervalBeats = 0;
-
-
   }
 
 
@@ -389,10 +433,11 @@ void UpdatePlay() {
     digitalWrite(LED_AVERAGEBPM, LOW);
     digitalWrite(LED_OVERALLBPM, HIGH);
 
-    greenDisplay.print((overallBpmCount * secsPerMinute) / overallSeconds);
-    greenDisplay.writeDigitRaw (2, chrDot4); //Bottom left dot
-    greenDisplay.writeDisplay();
-
+    redDisplay.print((overallBpmCount * secsPerMinute) / overallSeconds);
+    redDisplay.writeDigitRaw (2, chrDot4); //Bottom left dot
+    redDisplay.writeDisplay();
+    strip.clear();
+    strip.show();
     commChannel.sendMsg(MED_HELP, sizeof(MED_HELP));
     Serial.println("Keep it up");
     GoToNextState();
@@ -411,8 +456,8 @@ void UpdateFeedback() {
 
   if (startStopButton.wasPressed()) {
 
-    greenDisplay.clear();
-    greenDisplay.writeDisplay();
+    redDisplay.clear();
+    redDisplay.writeDisplay();
     digitalWrite(LED_OVERALLBPM, LOW);
     GoToNextState();
   }

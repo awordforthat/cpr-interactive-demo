@@ -15,7 +15,7 @@
 #endif
 
 #define PIN 6
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(8, PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(24, PIN, NEO_GRB + NEO_KHZ800);
 
 Adafruit_7segment displayTime = Adafruit_7segment();// Add time display
 Adafruit_7segment displayBeatsPerMinute = Adafruit_7segment(); // Add BeatsPerMinute display
@@ -223,14 +223,14 @@ void loop() {
       Serial.println();
       Serial.println("Neopixels will chase and change color now");
       Serial.println();
-      colorWipe(strip.Color(255, 0, 0), 50); // Red
-      colorWipe(strip.Color(0, 255, 0), 50); // Green
-      colorWipe(strip.Color(0, 0, 255), 50); // Blue
+      colorWipe(strip.Color(100, 0, 0), 50); // Red
+      colorWipe(strip.Color(0, 100, 0), 50); // Green
+      colorWipe(strip.Color(0, 0, 100), 50); // Blue
 
       // Send a theater pixel chase in...
-      theaterChase(strip.Color(127, 127, 127), 50); // White
-      theaterChase(strip.Color(127, 0, 0), 50); // Red
-      theaterChase(strip.Color(0, 0, 127), 50); // Blue
+      theaterChase(strip.Color(100, 100, 100), 50); // White
+      theaterChase(strip.Color(100, 0, 0), 50); // Red
+      theaterChase(strip.Color(0, 0, 100), 50); // Blue
 
       strip.show(); // Set all pixels to 'off'
 

@@ -5,9 +5,9 @@ void calculateAverageBPM() {
   averageBpm = (averageBpmCount * BPM_CONVERT);
 
   // print to screen
-  greenDisplay.print(averageBpm);
-  greenDisplay.writeDigitRaw (2, chrDot3); //Top left dot
-  greenDisplay.writeDisplay();
+  redDisplay.print(averageBpm);
+  redDisplay.writeDigitRaw (2, chrDot3); //Top left dot
+  redDisplay.writeDisplay();
   digitalWrite(LED_AVERAGEBPM, HIGH);
 
 
@@ -29,12 +29,12 @@ void handleStartTimeConvert() {
 
 
   redDisplay.print(displayValue);
-  redDisplay.drawColon(true); // must go after print to display
+  //  redDisplay.drawColon(true); // must go after print to display
   redDisplay.writeDisplay();
 }
 
 boolean checkPaceProficiencySlow(int averageBpm, int lowLimit) { //values from averageBpm and MIN_ACCEPTABLE_BPM
-  return averageBpm > lowLimit; 
+  return averageBpm > lowLimit;
   //Returns 'true' for isFastEnough if averageBPM is greater than MIN_ACCEPTABLE_BPM
   //Returns 'false' if averageBPM is less than MIN_ACCEPTABLE_BPM
 }
@@ -43,7 +43,7 @@ boolean checkPaceProficiencyFast(int averageBpm, int highLimit) { //values from 
   return averageBpm < highLimit;
   //Returns 'true' for isSlowEnough if averageBPM is less than MIN_ACCEPTABLE_BPM
   //Returns 'false' if averageBPM is greater than MIN_ACCEPTABLE_BPM
-  }
+}
 
 bool checkDepthProficiency() {
   // how many beats did we expect during this interval?
@@ -73,14 +73,14 @@ void deliverFeedback(bool goingFastEnough, boolean goingSlowEnough, bool hasGood
         deliverPaceFeedback(true); // speed up!
       }
       break;
-      
+
     case CHECK_FOR_PACE_FAST:
       if (!goingSlowEnough) {
         Serial.println("Inside deliverFeedback - toooo faaaast!");
         deliverPaceFeedback(false);  // slow down!
       }
       break;
-      
+
     case CHECK_FOR_DEPTH:
       if (!hasGoodDepth) {
         deliverDepthFeedback();
@@ -102,26 +102,26 @@ void deliverPaceFeedback(bool shouldSpeedUp) {
         Serial.println("Little faster");
         Serial.println();
       }
-      
+
       else {
         commChannel.sendMsg(LITTLE_FASTER_AND_MUSIC, sizeof(LITTLE_FASTER_AND_MUSIC));
-        Serial.println("Play music");
+        Serial.println("Play Little Faster and music");
         Serial.println();
       }
     }
 
     else { // too fast! go a little slower
-      
+
       if (numCorrections < 1 ) {
         commChannel.sendMsg(LITTLE_SLOWER, sizeof(LITTLE_SLOWER)); //To be changed to a 'slower' message.
         Serial.println("Little slower");
         Serial.println();
       }
-      
+
       //We never seem to hit this else statement and hear intro and music.  Get back to this.
       else {
         commChannel.sendMsg(LITTLE_SLOWER_AND_MUSIC, sizeof(LITTLE_SLOWER_AND_MUSIC));
-        Serial.println("Play music");
+        Serial.println("Play Little Slower and music");
         Serial.println();
       }
     }
@@ -130,7 +130,7 @@ void deliverPaceFeedback(bool shouldSpeedUp) {
   }
 
   //
- 
+
 }
 
 void deliverDepthFeedback() {
@@ -194,7 +194,7 @@ void checkForDirectionChange(int currentDistanceValue) {
     dirPlus = !dirPlus; //Change direction flag
   }
   else if ((currentDistanceValue > previousDistanceValue) && !dirPlus) {
-    //    Serial.println("Going down!");
+    Serial.println("Going down!");
 
     if (upDistance < maximumDepth * 0.60 && upDistance != 1) {
       shortUpStrokeCounter++;
