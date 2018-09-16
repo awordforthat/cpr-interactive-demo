@@ -22,7 +22,8 @@ class Button {
     }
 
     // call this to get the value of the button. Note:
-    // this only returns TRUE on the loop where the value changed solidly to the trigger value. A held-down button will not return TRUE while it is pressed.
+    // this only returns TRUE on the loop where the value changed solidly to the trigger value. 
+    // A held-down button will not return TRUE while it is pressed.
     bool wasPressed() {
       return value;
       }
@@ -44,8 +45,6 @@ class Button {
           // record the current value in an exposed variable (accessible from the outside via wasPressed()
          value = CheckDebounce(instReading, triggerVal);
        }
-
-       
     }
 
     boolean CheckDebounce(int instReading, bool triggerVal)

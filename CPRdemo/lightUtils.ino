@@ -9,7 +9,7 @@ void updateCountdown(int wait) {
   else return;
 }
 
-//  timeCountDown = ((int)map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS));
+
 
 void decrementCounter() { //Look to see if we've counted down to the point that a pixel should be blanked and
   //the stick should be updated

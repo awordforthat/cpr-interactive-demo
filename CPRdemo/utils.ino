@@ -6,7 +6,7 @@ void calculateAverageBPM() {
 
   // print to screen
   redDisplay.print(averageBpm);
-  redDisplay.writeDigitRaw (2, chrDot3); //Top left dot
+//  redDisplay.writeDigitRaw (2, CHR_DOT_3); //Top left dot
   redDisplay.writeDisplay();
   digitalWrite(LED_AVERAGEBPM, HIGH);
 
@@ -15,9 +15,9 @@ void calculateAverageBPM() {
 }
 
 void handleStartTimeConvert() {
-  hours = (timeCountDown - (timeCountDown % secsPerHour)) / secsPerHour;
-  minutes = ((timeCountDown - (timeCountDown % secsPerMinute) - (hours * secsPerHour))) / secsPerMinute; // secsPerMinute;
-  seconds = ((timeCountDown % secsPerHour) % secsPerMinute);
+//  hours = (timeCountDown - (timeCountDown % SECS_PER_HOUR)) / SECS_PER_HOUR;
+  minutes = ((timeCountDown - (timeCountDown % SECS_PER_MINUTE) - (hours * SECS_PER_HOUR))) / SECS_PER_MINUTE; // SECS_PER_MINUTE;
+  seconds = ((timeCountDown % SECS_PER_HOUR) % SECS_PER_MINUTE);
 
   if (minutes == 0) {
     if (seconds < 10) {
@@ -118,7 +118,6 @@ void deliverPaceFeedback(bool shouldSpeedUp) {
         Serial.println();
       }
 
-      //We never seem to hit this else statement and hear intro and music.  Get back to this.
       else {
         commChannel.sendMsg(LITTLE_SLOWER_AND_MUSIC, sizeof(LITTLE_SLOWER_AND_MUSIC));
         Serial.println("Play Little Slower and music");
@@ -180,7 +179,7 @@ void checkForDirectionChange(int currentDistanceValue) {
     //    Serial.println("Going up!");
 
 
-    if (downDistance < maximumDepth * 0.6 && downDistance != 1) {
+    if (downDistance < maximumDepth * 0.9 && downDistance != 1) {
       previousDownWasShort = true;
       numBadDowns++;
     }
@@ -196,7 +195,7 @@ void checkForDirectionChange(int currentDistanceValue) {
   else if ((currentDistanceValue > previousDistanceValue) && !dirPlus) {
     Serial.println("Going down!");
 
-    if (upDistance < maximumDepth * 0.60 && upDistance != 1) {
+    if (upDistance < maximumDepth * 0.90 && upDistance != 1) {
       shortUpStrokeCounter++;
       previousUpWasShort = true;
     }

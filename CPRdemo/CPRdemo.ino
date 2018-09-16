@@ -1,4 +1,16 @@
-#ifdef __AVR__
+/* Written by Emily and Jeff Wachtel. But mostly Emily.
+    This code runs a system which is used by the
+    Agoura Hills Community Emergency Response Team (AHCERT)
+    to train people to perform Hands-Only CPR (Cardio Pulmonary Resuscitation).
+    The user selects the time they want to try it out and once they start,
+    the system takes input from a pot mounted in a CPR dummy and
+    uses its output to determine number of beats per minute
+    and depth of compressions. It responds with audio prompts to
+    guide the user to do CPR correctly.
+*/
+
+#ifdef __AVR__5000
+
 #include <avr/power.h>
 #endif
 
@@ -23,7 +35,7 @@
 #define STRIP_PIN 6 //Set pin 6 for Neopixel strip
 
 Adafruit_7segment redDisplay = Adafruit_7segment();
-Adafruit_7segment greenDisplay = Adafruit_7segment();
+//Adafruit_7segment greenDisplay = Adafruit_7segment();
 
 
 enum StateID {
@@ -52,7 +64,7 @@ size_t fWrite(const byte what) {
 StateID currentState = SETUP;
 bool includeCalibration = false;
 bool adultMode = true;
-int smoothingValue = 15;
+int smoothingValue = 15; //With pot change should we increase this value?
 Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
 Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
 Potentiometer bpmPot = Potentiometer(POT_PIN_BEATSPERMINUTE, 40);
@@ -60,18 +72,17 @@ Potentiometer timePot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
 RS485 commChannel(NULL, NULL, fWrite, 0);
 
 unsigned long previousMillis = 0;        // will store last time LED was updated
-const long interval = 1000;           // interval at which to blink (milliseconds) Usually 1000  Why is this a long variable?
-boolean drawDots = true;  //A variable to hold whether to display dots or not
+//const long interval = 1000;           // interval at which to blink (milliseconds) Usually 1000  Why is this a long variable? Becaus it calcs with other longs?
+//boolean drawDots = true;  //A variable to hold whether to display dots or not
 unsigned long startTime = 0;
 unsigned long timeCountDown = startTime;
 int seconds; //Actual seconds
 int minutes; //Actual minutes
 int hours; //Actual hours
-const int secsPerHour = 3600;
-const int secsPerMinute = 60;
-int dotCount = 0; //Counter for doubling dot display speed
-const byte chrDot3   = 0b00000100;  // Dot 3 Top, left.  Must be output to character position 2
-const byte chrDot4   = 0b00001000;  // Dot 4 Bottom, left.  Must be output to character position 2
+const int SECS_PER_HOUR = 3600;
+const int SECS_PER_MINUTE = 60;
+//const byte CHR_DOT_3   = 0b00000100;  // Dot 3 Top, left.  Must be output to character position 2
+//const byte CHR_DOT_4   = 0b00001000;  // Dot 4 Bottom, left.  Must be output to character position 2
 
 // variables for setup state
 
@@ -80,7 +91,6 @@ const byte chrDot4   = 0b00001000;  // Dot 4 Bottom, left.  Must be output to ch
 long totalDistance = 0; //Try to divide the source so an int can be used.
 int directionChangeCounter = 0;
 bool dirPlus = false;
-int totalDepth = 0; //in hundredths of an inch?
 int previousDistanceValue = 0;
 int startDistanceValue = 0;
 int averageBpm = 0;
@@ -93,10 +103,9 @@ int overallBpmCounterStart = 0;
 int overallSeconds = 0;
 int upDistance = 0;
 int downDistance = 0;
-boolean previousDownWasShort = false;
-boolean previousUpWasShort = false;
+bool previousDownWasShort = false;
+bool previousUpWasShort = false;
 int shortUpStrokeCounter = 0;
-int distanceCounterBeats = 5;
 int overallBpmCount = 0;
 int feedbackMode = -1;
 int numCorrections = 0;
@@ -106,18 +115,18 @@ int NUM_PIXELS = 24; //Should this be a const int?
 int numLitPixels = 1; //Number of pixels to be lit upon updating the stick
 int lastLitPixel = NUM_PIXELS; //Number of the highest pixel previously lit
 int stickDifference = 0; //Value at which a pixel should be dropped
-boolean sentFeedbackLastTime = true;
-boolean sent75pctInfo = false;
+bool sentFeedbackLastTime = true;
+bool sent75pctInfo = false;
 bool isIdle = true;
 bool decrementNow = false;
-long countDownSeconds = 10; //Arbitrarily set.  To be deleted.
-long countDownMillis = countDownSeconds * 1000; //Number of millis in total countdown time
+//long countDownSeconds = 10; //Arbitrarily set.  To be deleted.
+//long countDownMillis = countDownSeconds * 1000; //Number of millis in total countdown time
 long previousCountDownMillis = 0;
 
 unsigned long previousBlink = millis();
 unsigned long startMillis = 0; //For updateCountdown
 int ANIMATION_STEP_DELAY = 15; //Time between stick pixels when refreshing stick
-const int BLINK_INTERVAL = 500;
+//const int BLINK_INTERVAL = 500;
 const byte GOOD_COMP [] = "1";
 const byte RIGHT_SPEED [] = "2";
 const byte GOT_THIS [] = "3";
@@ -132,7 +141,7 @@ const byte LITTLE_SLOWER_AND_MUSIC [] = "10";
 const int AVERAGE_INTERVAL_SAMPLE_TIME = 5000;//How long between averaging and postings of averageBpm, in millis().
 const int BPM_CONVERT = (60 / (AVERAGE_INTERVAL_SAMPLE_TIME / 1000));
 const int MAX_NUM_SECONDS = 182;
-const int MIN_NUM_SECONDS = 15;
+const int MIN_NUM_SECONDS = 60;
 const int MAX_NUM_CORRECTIONS = 2;
 const int MIN_ACCEPTABLE_BPM = 100;
 const int MAX_ACCEPTABLE_BPM = 121;
@@ -142,45 +151,45 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, STRIP_PIN, NEO_GRB + NEO
 
 //Variables for Calibrate state
 
-int maximumDepth = (350 / smoothingValue); //Eventually get this from a read of the bpm pot in the calibrate state.
+int maximumDepth = (800 / smoothingValue); //Also get this from a read of the bpm pot in the calibrate state.
 //int minimumDepth = 0; Will we use this?
 int calibrateMaximumDepth = 0;
 int calibrateMinimumDepth = 1023;
 
 
 
-void handleTimeUpdate(long currentMillis) {
-  if (currentMillis - previousMillis >= interval) {
-    // save the last time you updated the display
-    previousMillis = currentMillis;
+//void handleTimeUpdate(long currentMillis) {
+//  if (currentMillis - previousMillis >= interval) {
+//    // save the last time you updated the display
+//    previousMillis = currentMillis;
+//
+//    //If one second has elapsed, do all these things
+//    //    hours = (timeCountDown - (timeCountDown % SECS_PER_HOUR)) / SECS_PER_HOUR;
+//    minutes = ((timeCountDown - (timeCountDown % SECS_PER_MINUTE) - (hours * SECS_PER_HOUR))) / SECS_PER_MINUTE; // SECS_PER_MINUTE;
+//    seconds = ((timeCountDown % SECS_PER_HOUR) % SECS_PER_MINUTE);
+//    if (minutes == 0) {
+//      if (seconds < 10) {
+//        //        greenDisplay.writeDigitNum(3, 0);
+//      }
+//    }
+//
+//    int displayValue = (minutes * 100) + seconds; //To be pushed to the display.
+//    //    greenDisplay.print(displayValue);
+//    //    greenDisplay.writeDisplay();
+//
+//    timeCountDown--; //Decrement countdown counter
+//  }
+//}
 
-    //If one second has elapsed, do all these things
-    //    hours = (timeCountDown - (timeCountDown % secsPerHour)) / secsPerHour;
-    minutes = ((timeCountDown - (timeCountDown % secsPerMinute) - (hours * secsPerHour))) / secsPerMinute; // secsPerMinute;
-    seconds = ((timeCountDown % secsPerHour) % secsPerMinute);
-    if (minutes == 0) {
-      if (seconds < 10) {
-        greenDisplay.writeDigitNum(3, 0);
-      }
-    }
-
-    int displayValue = (minutes * 100) + seconds; //To be pushed to the display.
-    greenDisplay.print(displayValue);
-    greenDisplay.writeDisplay();
-
-    timeCountDown--; //Decrement countdown counter
-  }
-}
-
-void handleColonBlink(long currentMillis) {
-  if (currentMillis - previousBlink >= BLINK_INTERVAL) {
-    // If a half second has elapsed, do all these things
-    previousBlink = currentMillis;
-    greenDisplay.drawColon(drawDots);
-    greenDisplay.writeDisplay();
-    drawDots = !drawDots; //invert drawDots state
-  }
-}
+//void handleColonBlink(long currentMillis) {
+//  if (currentMillis - previousBlink >= BLINK_INTERVAL) {
+//    // If a half second has elapsed, do all these things
+//    previousBlink = currentMillis;
+//    //    greenDisplay.drawColon(drawDots);
+//    //    greenDisplay.writeDisplay();
+//    drawDots = !drawDots; //invert drawDots state
+//  }
+//}
 
 
 // the setup function runs once when you press reset or power the board
@@ -193,20 +202,20 @@ void setup() {
   pinMode(BUTTON_STARTSTOP, INPUT_PULLUP);
   pinMode(BUTTON_ADULTCHILD, INPUT_PULLUP);
 
-  greenDisplay.begin(0x70);
+  //  greenDisplay.begin(0x70);
   redDisplay.begin(0x71);
 
 
   //Clear the displays and set brightness
-  greenDisplay.clear();
-  greenDisplay.writeDisplay();
+  //  greenDisplay.clear();
+  //  greenDisplay.writeDisplay();
   redDisplay.clear();
   redDisplay.writeDisplay();
   redDisplay.drawColon(true);
   redDisplay.writeDisplay();
 
   redDisplay.setBrightness (15);  //Values 0-15
-  greenDisplay.setBrightness (15);  //Values 0-15
+  //  greenDisplay.setBrightness (15);  //Values 0-15
 
   Serial.begin(9600);
 
@@ -218,7 +227,11 @@ void setup() {
   timePot.init();
   bpmPot.init();
 
-
+  if (digitalRead(BUTTON_ADULTCHILD) == 0) { //If we power up or reset with the Adult/Child button pressed,
+    //we immediately enter the calibrate state.  This may be temporary.
+    Serial.println("Calibrate!");
+    currentState = 4;
+  }
 
 } //End setup
 
@@ -237,7 +250,7 @@ void UpdateSetup() {
   // gets the smoothed value from the time pot, then maps it into the min-max second range
   // tiny change
   timeCountDown = ((int)map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS));
-  countDownMillis = timeCountDown * 1000;
+  int countDownMillis = timeCountDown * 1000;
   //  int stickCountDown = ((int)map(512, 0, 1023, 0, NUM_PIXELS)); //Pot value mapped to length of stick (NUM_PIXELS)
   //Arbitrary pot value of 50% of range
   stickDifference = countDownMillis / NUM_PIXELS; //How many millis between redisplay of stick
@@ -248,9 +261,9 @@ void UpdateSetup() {
 
   if (startStopButton.wasPressed()) {
 
-    drawDots = false;
-    greenDisplay.clear();
-    greenDisplay.writeDisplay();
+    //    drawDots = false;
+    //    greenDisplay.clear();
+    //    greenDisplay.writeDisplay();
 
     beatCounter = 0;
     redDisplay.blinkRate(1);
@@ -276,7 +289,7 @@ void UpdateWaiting() {
 
   int currentDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
   checkForDirectionChange(currentDistanceValue);
-  
+
 
   if (beatCounter > 1 || startStopButton.wasPressed()) { //at the first compression or push of the Start/Stop button, do all this
     previousDistanceValue = bpmPot.getRollingAverage() / smoothingValue;
@@ -332,14 +345,14 @@ void UpdatePlay() {
   redDisplay.writeDisplay();
 
   if (seconds < 10) {
-    greenDisplay.writeDigitNum(3, 0);
-    greenDisplay.writeDisplay();
+    //    greenDisplay.writeDigitNum(3, 0);
+    //    greenDisplay.writeDisplay();
   }
 
   long currentMillis = millis(); //Record current time (used in calculating what to display on each of the 7-segs)
 
-  handleTimeUpdate(currentMillis);
-  handleColonBlink(currentMillis);
+  //  handleTimeUpdate(currentMillis);
+  //  handleColonBlink(currentMillis);
 
 
   if (((millis() - overallBpmStartTime) > (0.75 * playDuration * 1000)) && !sent75pctInfo) {
@@ -360,7 +373,7 @@ void UpdatePlay() {
     bool isSlowEnough = checkPaceProficiencyFast(averageBpm, MAX_ACCEPTABLE_BPM); // is pace slow enough? (i.e., slower than MAX)
     bool hasGoodDepth = checkDepthProficiency();
 
-    Serial.println(averageBpm + (String)isFastEnough  + (String)isSlowEnough);
+    Serial.println((String)averageBpm + " " + (String)isFastEnough  + " " + (String)isSlowEnough);
 
     // evaluate feedback mode, changing if necessary
     if (feedbackMode == LISTENING && ( !hasGoodDepth || !(isFastEnough == isSlowEnough && isFastEnough) )) { // listening for a mistake. if there is one, kick into correction mode
@@ -433,8 +446,8 @@ void UpdatePlay() {
     digitalWrite(LED_AVERAGEBPM, LOW);
     digitalWrite(LED_OVERALLBPM, HIGH);
 
-    redDisplay.print((overallBpmCount * secsPerMinute) / overallSeconds);
-    redDisplay.writeDigitRaw (2, chrDot4); //Bottom left dot
+    redDisplay.print((overallBpmCount * SECS_PER_MINUTE) / overallSeconds);
+    //    redDisplay.writeDigitRaw (2, CHR_DOT_4); //Bottom left dot
     redDisplay.writeDisplay();
     strip.clear();
     strip.show();
@@ -465,16 +478,19 @@ void UpdateFeedback() {
 
 void UpdateCalibration() {
   redDisplay.writeDigitNum(0, CALIBRATION);
-  redDisplay.writeDigitRaw(2, chrDot3);
+  //  redDisplay.writeDigitRaw(2, CHR_DOT_3);
   redDisplay.writeDisplay();
 
   // turn on LEDS to signal the start of the calibration period:
   digitalWrite(LED_AVERAGEBPM, HIGH);
   digitalWrite(LED_OVERALLBPM, HIGH);
+  strip.setPixelColor(11, 255, 255, 255);
+  strip.show();
   int calibrateMillis = millis();
+  int blinkMillis = millis();
 
-  // calibrate during the first five seconds
-  while (millis() - calibrateMillis < 5000) {
+  // calibrate during the first ten seconds
+  while (millis() - calibrateMillis < 10000) {
     int sensorValue = analogRead(POT_PIN_BEATSPERMINUTE);
 
 
@@ -496,11 +512,14 @@ void UpdateCalibration() {
   Serial.println("Time's up!");
   digitalWrite(LED_AVERAGEBPM, LOW);
   digitalWrite(LED_OVERALLBPM, LOW);
+  strip.setPixelColor(11, 0, 0, 0);
+  strip.show();
   Serial.println("Final Min = " + (String)calibrateMinimumDepth);
   Serial.println("Final Max = " + (String)calibrateMaximumDepth);
   //  minimumDepth = calibrateMinimumDepth; Check with Emily before implementing
-  //  maximumDepth = calibrateMaximumDepth;
-  GoToNextState();
+  maximumDepth = calibrateMaximumDepth / smoothingValue;
+  delay(5000); //Wait so user stops and doesn't put us into play state.  Cheap way to do it.
+  GoToNextState(); //Why does redDisplay show -1 and OverallBpm lights up when we advance?
 
 }
 //NEW
@@ -529,6 +548,10 @@ void loop() {
 
   // always update inputs, no matter what state we're in
   adultChildButton.updateButton();
+  //  if (adultChildButton.wasPressed()){
+  //    includeCalibration = true; //Should allow us into the Calibration state.
+  //    Serial.println("includeCalibration is " +(String)includeCalibration);
+  //  }
   startStopButton.updateButton();
   timePot.updatePot();
   bpmPot.updatePot();
@@ -610,4 +633,14 @@ void loop() {
     Want to fix spurious output on the serial monitor each time a serial command goes to the slave Uno.
 */
 
+/*   First capture calibrate value and set an external condition that allows us to calibrate.
+   Use Adult/Child button?
+   Signal with Neopixels that we're in the calibrate state.
+   Need to check depth of compressions.  Changed to .9 of maxDepth and that seems like it's too little.
+   Should smoothingValue increase?
+*/
 
+/* Removed code for greenDisplay.  Took out BPM indicator decimals on redDisplay.
+    Changed all constant name to UC.  Removed unused variables. Commented out redDisplay count down code.
+    May have to look at "Right Speed" message after too fast.  Averaging makes it right speed when it might not be.
+*/
