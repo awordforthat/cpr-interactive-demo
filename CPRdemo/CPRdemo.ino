@@ -1,4 +1,4 @@
-/* Written by Emily and Jeff Wachtel. But mostly Emily.
+/* Written by Emily Charles and Jeff Wachtel. But mostly Emily.
     This code runs a system which is used by the
     Agoura Hills Community Emergency Response Team (AHCERT)
     to train people to perform Hands-Only CPR (Cardio Pulmonary Resuscitation).
@@ -72,7 +72,7 @@ Potentiometer timePot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
 RS485 commChannel(NULL, NULL, fWrite, 0);
 
 unsigned long previousMillis = 0;        // will store last time LED was updated
-//const long interval = 1000;           // interval at which to blink (milliseconds) Usually 1000  Why is this a long variable? Because it calcs with other longs?
+const long interval = 1000;           // interval at which to blink (milliseconds) Usually 1000  Why is this a long variable? Because it calcs with other longs?
 //boolean drawDots = true;  //A variable to hold whether to display dots or not
 unsigned long startTime = 0;
 unsigned long timeCountDown = startTime;
@@ -158,28 +158,28 @@ int calibrateMinimumDepth = 1023;
 
 
 
-//void handleTimeUpdate(long currentMillis) {
-//  if (currentMillis - previousMillis >= interval) {
-//    // save the last time you updated the display
-//    previousMillis = currentMillis;
-//
-//    //If one second has elapsed, do all these things
-//    //    hours = (timeCountDown - (timeCountDown % SECS_PER_HOUR)) / SECS_PER_HOUR;
-//    minutes = ((timeCountDown - (timeCountDown % SECS_PER_MINUTE) - (hours * SECS_PER_HOUR))) / SECS_PER_MINUTE; // SECS_PER_MINUTE;
-//    seconds = ((timeCountDown % SECS_PER_HOUR) % SECS_PER_MINUTE);
-//    if (minutes == 0) {
-//      if (seconds < 10) {
-//        //        greenDisplay.writeDigitNum(3, 0);
-//      }
-//    }
-//
-//    int displayValue = (minutes * 100) + seconds; //To be pushed to the display.
-//    //    greenDisplay.print(displayValue);
-//    //    greenDisplay.writeDisplay();
-//
-//    timeCountDown--; //Decrement countdown counter
-//  }
-//}
+void handleTimeUpdate(long currentMillis) {
+  if (currentMillis - previousMillis >= interval) {
+    // save the last time you updated the display
+    previousMillis = currentMillis;
+
+    //If one second has elapsed, do all these things
+    //    hours = (timeCountDown - (timeCountDown % SECS_PER_HOUR)) / SECS_PER_HOUR;
+    minutes = ((timeCountDown - (timeCountDown % SECS_PER_MINUTE) - (hours * SECS_PER_HOUR))) / SECS_PER_MINUTE; // SECS_PER_MINUTE;
+    seconds = ((timeCountDown % SECS_PER_HOUR) % SECS_PER_MINUTE);
+    if (minutes == 0) {
+      if (seconds < 10) {
+        //        greenDisplay.writeDigitNum(3, 0);
+      }
+    }
+
+    int displayValue = (minutes * 100) + seconds; //To be pushed to the display.
+    //    greenDisplay.print(displayValue);
+    //    greenDisplay.writeDisplay();
+
+    timeCountDown--; //Decrement countdown counter
+  }
+}
 
 //void handleColonBlink(long currentMillis) {
 //  if (currentMillis - previousBlink >= BLINK_INTERVAL) {
@@ -275,11 +275,11 @@ void UpdateSetup() {
     adultMode = digitalRead(BUTTON_ADULTCHILD);  // 1= Adult, 0= Child
     if (adultMode == 1)
     {
-      Serial.println("adultMode= ADULT");
+      //      Serial.println("adultMode= ADULT");
     }
     else
     {
-      Serial.println("adultMode= CHILD");
+      //      Serial.println("adultMode= CHILD");
     }
 
     GoToNextState();
@@ -323,14 +323,10 @@ void UpdatePlay() {
   decrementCounter(); //Go see if a stickDifference has occurred
 
   if (decrementNow == true) { //If we counted down to the point to blank a pixel
-    //  if (millis() > (tickMillis + UPDATE_STEP_DELAY)) { //UPDATE_STEP_DELAY to be removed when we trigger update by event
     strip.clear();
     strip.show();
-    //    tickMillis = millis(); //Reset the idle count
     isIdle = false;
   }
-  //  Serial.println("lastLitPixel = " + (String)lastLitPixel);
-
 
   if (!isIdle) {
     updateCountdown(ANIMATION_STEP_DELAY); //Go update the stick
@@ -346,14 +342,14 @@ void UpdatePlay() {
   redDisplay.blinkRate(0);
   redDisplay.writeDisplay();
 
-  if (seconds < 10) {
-    //    greenDisplay.writeDigitNum(3, 0);
-    //    greenDisplay.writeDisplay();
-  }
+  //  if (seconds < 10) {
+  //        greenDisplay.writeDigitNum(3, 0);
+  //        greenDisplay.writeDisplay();
+  //  }
 
   long currentMillis = millis(); //Record current time (used in calculating what to display on each of the 7-segs)
 
-  //  ????handleTimeUpdate(currentMillis);
+  handleTimeUpdate(currentMillis);
   //  handleColonBlink(currentMillis);
 
 
@@ -366,9 +362,6 @@ void UpdatePlay() {
   if (currentMillis >= (averageIntervalStartTime + AVERAGE_INTERVAL_SAMPLE_TIME)) { //every 5 seconds do every thing below until testing Start/Stop button.
     // do our calculations
     calculateAverageBPM();
-    // TODO: calculate distance here
-
-
 
     // how is the user doing? Check all three conditions.
     bool isFastEnough = checkPaceProficiencySlow(averageBpm, MIN_ACCEPTABLE_BPM); // is pace fast enough? (i.e., faster than MIN)
@@ -389,7 +382,6 @@ void UpdatePlay() {
       if (!isSlowEnough) { //Need to get processing to get here.
         feedbackMode = CHECK_FOR_PACE_FAST;
       }
-
     }
 
     // give feedback if appropriate
@@ -398,10 +390,7 @@ void UpdatePlay() {
       deliverFeedback(isFastEnough, isSlowEnough, hasGoodDepth);
     }
 
-
-
     sentFeedbackLastTime = !sentFeedbackLastTime;
-
 
     // If nothing is bad, reset for next pass and check Start/Stop button.
     // if the user has corrected their mistake, kick back into listening mode
@@ -447,18 +436,15 @@ void UpdatePlay() {
     overallSeconds = (millis() - overallBpmStartTime) / 1000;
     digitalWrite(LED_AVERAGEBPM, LOW);
     digitalWrite(LED_OVERALLBPM, HIGH);
-
     redDisplay.print((overallBpmCount * SECS_PER_MINUTE) / overallSeconds);
     //    redDisplay.writeDigitRaw (2, CHR_DOT_4); //Bottom left dot
     redDisplay.writeDisplay();
     strip.clear();
     strip.show();
     commChannel.sendMsg(MED_HELP, sizeof(MED_HELP));
-    Serial.println("Keep it up");
+    lastLitPixel = NUM_PIXELS;
     GoToNextState();
-
   }
-
 
 }
 
@@ -468,9 +454,7 @@ void UpdateFeedback() {
 
   beatCounter = 0;
 
-
   if (startStopButton.wasPressed()) {
-
     redDisplay.clear();
     redDisplay.writeDisplay();
     digitalWrite(LED_OVERALLBPM, LOW);
@@ -645,4 +629,9 @@ void loop() {
 /* Removed code for greenDisplay.  Took out BPM indicator decimals on redDisplay.
     Changed all constant name to UC.  Removed unused variables. Commented out redDisplay count down code.
     May have to look at "Right Speed" message after too fast.  Averaging makes it right speed when it might not be.
+*/
+
+/* Fixed bug which caused pixels to start lighting from the place they were if the time didn't
+    clock down but the Start/Stop button was pressed.  Now resets properly.  Fixed bug in which we never advanced to
+    feedback state.
 */
