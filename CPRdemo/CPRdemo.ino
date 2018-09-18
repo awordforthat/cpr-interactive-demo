@@ -470,7 +470,9 @@ void UpdateCalibration() {
   // turn on LEDS to signal the start of the calibration period:
   digitalWrite(LED_AVERAGEBPM, HIGH);
   digitalWrite(LED_OVERALLBPM, HIGH);
-  strip.setPixelColor(11, 255, 255, 255);
+  for (int i = 0; i < 24; i = i+2) {
+    strip.setPixelColor(i, 0, 100, 0);
+  }
   strip.show();
   int calibrateMillis = millis();
   int blinkMillis = millis();
@@ -498,7 +500,9 @@ void UpdateCalibration() {
   Serial.println("Time's up!");
   digitalWrite(LED_AVERAGEBPM, LOW);
   digitalWrite(LED_OVERALLBPM, LOW);
-  strip.setPixelColor(11, 0, 0, 0);
+  for (int i = 0; i < 24; i = i+2) {
+    strip.setPixelColor(i, 0, 0, 0);
+  }
   strip.show();
   Serial.println("Final Min = " + (String)calibrateMinimumDepth);
   Serial.println("Final Max = " + (String)calibrateMaximumDepth);
