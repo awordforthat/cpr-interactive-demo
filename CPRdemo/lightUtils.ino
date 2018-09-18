@@ -13,17 +13,15 @@ void updateCountdown(int wait) {
 
 void decrementCounter() { //Look to see if we've counted down to the point that a pixel should be blanked and
   //the stick should be updated
-
   if (millis() > (previousCountDownMillis + stickDifference)) { //If we've counted up to the point that a pixel is to be dropped
+
     previousCountDownMillis = millis(); //Reset for the next dropped pixel
     lastLitPixel --;
     decrementNow = true; //It's time to update the stick
-//    Serial.println("We've decremented!");
-//    Serial.println("lastLitPixel is now: " + (String)lastLitPixel);
+
     if (lastLitPixel < 0) {
       lastLitPixel = NUM_PIXELS; //Reset for next user
     }
   }
-  else return;
 }
 

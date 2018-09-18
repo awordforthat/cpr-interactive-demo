@@ -72,7 +72,7 @@ Potentiometer timePot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
 RS485 commChannel(NULL, NULL, fWrite, 0);
 
 unsigned long previousMillis = 0;        // will store last time LED was updated
-//const long interval = 1000;           // interval at which to blink (milliseconds) Usually 1000  Why is this a long variable? Becaus it calcs with other longs?
+//const long interval = 1000;           // interval at which to blink (milliseconds) Usually 1000  Why is this a long variable? Because it calcs with other longs?
 //boolean drawDots = true;  //A variable to hold whether to display dots or not
 unsigned long startTime = 0;
 unsigned long timeCountDown = startTime;
@@ -111,7 +111,7 @@ int feedbackMode = -1;
 int numCorrections = 0;
 int numBadDowns = 0;
 int numIntervalBeats = 0;
-int NUM_PIXELS = 24; //Should this be a const int?
+const int NUM_PIXELS = 24;
 int numLitPixels = 1; //Number of pixels to be lit upon updating the stick
 int lastLitPixel = NUM_PIXELS; //Number of the highest pixel previously lit
 int stickDifference = 0; //Value at which a pixel should be dropped
@@ -151,7 +151,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NUM_PIXELS, STRIP_PIN, NEO_GRB + NEO
 
 //Variables for Calibrate state
 
-int maximumDepth = (800 / smoothingValue); //Also get this from a read of the bpm pot in the calibrate state.
+int maximumDepth = (750 / smoothingValue); //Also get this from a read of the bpm pot in the calibrate state.
 //int minimumDepth = 0; Will we use this?
 int calibrateMaximumDepth = 0;
 int calibrateMinimumDepth = 1023;
@@ -250,10 +250,12 @@ void UpdateSetup() {
   // gets the smoothed value from the time pot, then maps it into the min-max second range
   // tiny change
   timeCountDown = ((int)map(timePot.getRollingAverage(), 0, 1023, MIN_NUM_SECONDS, MAX_NUM_SECONDS));
-  int countDownMillis = timeCountDown * 1000;
+  long countDownMillis = timeCountDown * 1000;
+
   //  int stickCountDown = ((int)map(512, 0, 1023, 0, NUM_PIXELS)); //Pot value mapped to length of stick (NUM_PIXELS)
   //Arbitrary pot value of 50% of range
   stickDifference = countDownMillis / NUM_PIXELS; //How many millis between redisplay of stick
+
   //  previousCountDownMillis = millis();
 
   playDuration = timeCountDown;
@@ -351,7 +353,7 @@ void UpdatePlay() {
 
   long currentMillis = millis(); //Record current time (used in calculating what to display on each of the 7-segs)
 
-  //  handleTimeUpdate(currentMillis);
+  //  ????handleTimeUpdate(currentMillis);
   //  handleColonBlink(currentMillis);
 
 

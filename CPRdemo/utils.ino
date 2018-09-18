@@ -29,7 +29,7 @@ void handleStartTimeConvert() {
 
 
   redDisplay.print(displayValue);
-  //  redDisplay.drawColon(true); // must go after print to display
+  redDisplay.drawColon(true); // must go after print to display
   redDisplay.writeDisplay();
 }
 
@@ -179,7 +179,7 @@ void checkForDirectionChange(int currentDistanceValue) {
     //    Serial.println("Going up!");
 
 
-    if (downDistance < maximumDepth * 0.9 && downDistance != 1) {
+    if (downDistance < maximumDepth * 0.8 && downDistance != 1) {
       previousDownWasShort = true;
       numBadDowns++;
     }
@@ -195,7 +195,7 @@ void checkForDirectionChange(int currentDistanceValue) {
   else if ((currentDistanceValue > previousDistanceValue) && !dirPlus) {
     Serial.println("Going down!");
 
-    if (upDistance < maximumDepth * 0.90 && upDistance != 1) {
+    if (upDistance < maximumDepth * 0.80 && upDistance != 1) {
       shortUpStrokeCounter++;
       previousUpWasShort = true;
     }
