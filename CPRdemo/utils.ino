@@ -9,13 +9,13 @@ void calculateAverageBPM() {
 //  redDisplay.writeDigitRaw (2, CHR_DOT_3); //Top left dot
   redDisplay.writeDisplay();
   digitalWrite(LED_AVERAGEBPM, HIGH);
+  Serial.println("Calculating average bpm");
 
 
   averageBpmCounterStart = beatCounter;
 }
 
 void handleStartTimeConvert() {
-//  hours = (timeCountDown - (timeCountDown % SECS_PER_HOUR)) / SECS_PER_HOUR;
   minutes = ((timeCountDown - (timeCountDown % SECS_PER_MINUTE) - (hours * SECS_PER_HOUR))) / SECS_PER_MINUTE; // SECS_PER_MINUTE;
   seconds = ((timeCountDown % SECS_PER_HOUR) % SECS_PER_MINUTE);
 
@@ -194,7 +194,8 @@ void checkForDirectionChange(int currentDistanceValue) {
   }
   else if ((currentDistanceValue > previousDistanceValue) && !dirPlus) {
     Serial.println("Going down!");
-
+    beatBuffer.addBeat();
+    beatBuffer.getRollingAverage();
     if (upDistance < maximumDepth * 0.80 && upDistance != 1) {
       shortUpStrokeCounter++;
       previousUpWasShort = true;
@@ -207,13 +208,14 @@ void checkForDirectionChange(int currentDistanceValue) {
     startDistanceValue = currentDistanceValue;
     dirPlus = !dirPlus;
     beatCounter++;
-    numIntervalBeats++;
   }
 
   previousDistanceValue = currentDistanceValue;
-
+  
 
 }
+
+
 
 
 

@@ -18,6 +18,7 @@
 #include "Adafruit_LEDBackpack.h"
 #include "Button.cpp"
 #include "Potentiometer.cpp";
+#include "BeatBuffer.cpp"
 #include <Adafruit_NeoPixel.h>
 #include <RS485_non_blocking.h>
 #include <Wire.h>
@@ -69,6 +70,7 @@ Button adultChildButton = Button(BUTTON_ADULTCHILD, LED_ADULTCHILD, false);
 Button startStopButton = Button(BUTTON_STARTSTOP, LED_STARTSTOP);
 Potentiometer bpmPot = Potentiometer(POT_PIN_BEATSPERMINUTE, 40);
 Potentiometer timePot = Potentiometer(POT_PIN_TIME, NUM_SAMPLES);
+BeatBuffer beatBuffer = BeatBuffer(100000);
 RS485 commChannel(NULL, NULL, fWrite, 0);
 
 unsigned long previousMillis = 0;        // will store last time LED was updated
