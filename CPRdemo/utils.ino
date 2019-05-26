@@ -5,11 +5,8 @@ void calculateAverageBPM() {
   averageBpm = (averageBpmCount * BPM_CONVERT);
 
   // print to screen
-  redDisplay.print(averageBpm);
-//  redDisplay.writeDigitRaw (2, CHR_DOT_3); //Top left dot
-  redDisplay.writeDisplay();
+
   digitalWrite(LED_AVERAGEBPM, HIGH);
-  Serial.println("Calculating average bpm");
 
 
   averageBpmCounterStart = beatCounter;

@@ -1,8 +1,8 @@
 #include <Arduino.h>
 
 class BeatBuffer {
-    int bufferSize = 100;
-    long beatBuffer[100];
+    int bufferSize = 40;
+    long beatBuffer[40];
     int currentIndex;
     float intervalWidth; // in milliseconds, how long the rolling average window is
 
@@ -20,37 +20,38 @@ class BeatBuffer {
     }
 
 
+// returns the current BPM based on the number of beats that were received in the most
+// recent N seconds
     int BeatBuffer:: getRollingAverage() {
       long currentTime = millis();
-      int numBeats = 0;
+      float numBeats = 0;
+      long localMin = 10000000; //hack - just want something very large
+      long localMax = 0;
       for (int i = 0; i < bufferSize; i++) {
-    
-        if (beatBuffer[i] != -1) {
-
-          long diff = currentTime - beatBuffer[i];
-          if(diff < intervalWidth) {
+        if (beatBuffer[i] != -1) {                      // this line ignores values in the buffer that are left over from initialization
+          long diff = currentTime - beatBuffer[i];      // how long ago was the beat recorded?
+          if (diff < intervalWidth) {                   // if it was within the time frame, count it and do some other stuff
             numBeats++;
+            if (beatBuffer[i] < localMin) {             // within the interval, record the earliest beat
+              localMin = beatBuffer[i];
+            }
+
+            if (beatBuffer[i] > localMax) {             // and also the most recent
+              localMax = beatBuffer[i];
+            }
           }
 
         }
-        else {
-          break;
-        }
-
 
       }
-
-      // numBeats/interval width = x / 1000
-
-      float currentBPM = numBeats/intervalWidth * 1000 *60;
-      Serial.println(currentBPM);
-
-      return numBeats / this->intervalWidth * 1000 * 60;
+      long duration = localMax - localMin;              // calculate the actual duration of the interval from earliest to latest beat
+      return (float)numBeats / duration * 60 * 1000;    // send back calculated BPM
     }
 
+//  a beat is recorded as the timestamp of when it occurred
     void BeatBuffer::addBeat() {
       beatBuffer[currentIndex] = millis();
-      currentIndex++;
+      currentIndex = (currentIndex + 1) % bufferSize;
     }
 
     void BeatBuffer::printBuffer () {

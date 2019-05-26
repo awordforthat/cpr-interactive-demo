@@ -36,7 +36,7 @@
 #define STRIP_PIN 6 //Set pin 6 for Neopixel strip
 
 Adafruit_7segment redDisplay = Adafruit_7segment();
-//Adafruit_7segment greenDisplay = Adafruit_7segment();
+Adafruit_7segment greenDisplay = Adafruit_7segment();
 
 
 enum StateID {
@@ -121,8 +121,6 @@ bool sentFeedbackLastTime = true;
 bool sent75pctInfo = false;
 bool isIdle = true;
 bool decrementNow = false;
-//long countDownSeconds = 10; //Arbitrarily set.  To be deleted.
-//long countDownMillis = countDownSeconds * 1000; //Number of millis in total countdown time
 long previousCountDownMillis = 0;
 
 unsigned long previousBlink = millis();
@@ -171,13 +169,13 @@ void handleTimeUpdate(long currentMillis) {
     seconds = ((timeCountDown % SECS_PER_HOUR) % SECS_PER_MINUTE);
     if (minutes == 0) {
       if (seconds < 10) {
-        //        greenDisplay.writeDigitNum(3, 0);
+        redDisplay.writeDigitNum(3, 0);
       }
     }
 
     int displayValue = (minutes * 100) + seconds; //To be pushed to the display.
-    //    greenDisplay.print(displayValue);
-    //    greenDisplay.writeDisplay();
+    redDisplay.print(displayValue);
+    redDisplay.writeDisplay();
 
     timeCountDown--; //Decrement countdown counter
   }
@@ -204,7 +202,7 @@ void setup() {
   pinMode(BUTTON_STARTSTOP, INPUT_PULLUP);
   pinMode(BUTTON_ADULTCHILD, INPUT_PULLUP);
 
-  //  greenDisplay.begin(0x70);
+  greenDisplay.begin(0x70);
   redDisplay.begin(0x71);
 
 
@@ -265,9 +263,9 @@ void UpdateSetup() {
 
   if (startStopButton.wasPressed()) {
 
-    //    drawDots = false;
-    //    greenDisplay.clear();
-    //    greenDisplay.writeDisplay();
+    //drawDots = false;
+    redDisplay.clear();
+    redDisplay.writeDisplay();
 
     beatCounter = 0;
     redDisplay.blinkRate(1);
@@ -311,6 +309,7 @@ void UpdateWaiting() {
     sentFeedbackLastTime = false;
     redDisplay.clear();
     redDisplay.writeDisplay();
+    beatBuffer.reset();
     GoToNextState();
   }
 }
@@ -344,16 +343,14 @@ void UpdatePlay() {
   redDisplay.blinkRate(0);
   redDisplay.writeDisplay();
 
-  //  if (seconds < 10) {
-  //        greenDisplay.writeDigitNum(3, 0);
-  //        greenDisplay.writeDisplay();
-  //  }
 
   long currentMillis = millis(); //Record current time (used in calculating what to display on each of the 7-segs)
 
   handleTimeUpdate(currentMillis);
   //  handleColonBlink(currentMillis);
 
+  greenDisplay.print((int)beatBuffer.getRollingAverage());
+  greenDisplay.writeDisplay();
 
   if (((millis() - overallBpmStartTime) > (0.75 * playDuration * 1000)) && !sent75pctInfo) {
     commChannel.sendMsg(TIRED, sizeof(TIRED));
@@ -364,6 +361,7 @@ void UpdatePlay() {
   if (currentMillis >= (averageIntervalStartTime + AVERAGE_INTERVAL_SAMPLE_TIME)) { //every 5 seconds do every thing below until testing Start/Stop button.
     // do our calculations
     calculateAverageBPM();
+
 
     // how is the user doing? Check all three conditions.
     bool isFastEnough = checkPaceProficiencySlow(averageBpm, MIN_ACCEPTABLE_BPM); // is pace fast enough? (i.e., faster than MIN)
@@ -438,9 +436,9 @@ void UpdatePlay() {
     overallSeconds = (millis() - overallBpmStartTime) / 1000;
     digitalWrite(LED_AVERAGEBPM, LOW);
     digitalWrite(LED_OVERALLBPM, HIGH);
-    redDisplay.print((overallBpmCount * SECS_PER_MINUTE) / overallSeconds);
+    //redDisplay.print((overallBpmCount * SECS_PER_MINUTE) / overallSeconds);
     //    redDisplay.writeDigitRaw (2, CHR_DOT_4); //Bottom left dot
-    redDisplay.writeDisplay();
+    //redDisplay.writeDisplay();
     strip.clear();
     strip.show();
     commChannel.sendMsg(MED_HELP, sizeof(MED_HELP));
@@ -472,7 +470,7 @@ void UpdateCalibration() {
   // turn on LEDS to signal the start of the calibration period:
   digitalWrite(LED_AVERAGEBPM, HIGH);
   digitalWrite(LED_OVERALLBPM, HIGH);
-  for (int i = 0; i < 24; i = i+2) {
+  for (int i = 0; i < 24; i = i + 2) {
     strip.setPixelColor(i, 0, 100, 0);
   }
   strip.show();
@@ -502,7 +500,7 @@ void UpdateCalibration() {
   Serial.println("Time's up!");
   digitalWrite(LED_AVERAGEBPM, LOW);
   digitalWrite(LED_OVERALLBPM, LOW);
-  for (int i = 0; i < 24; i = i+2) {
+  for (int i = 0; i < 24; i = i + 2) {
     strip.setPixelColor(i, 0, 0, 0);
   }
   strip.show();
